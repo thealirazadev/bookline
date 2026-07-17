@@ -1,6 +1,7 @@
 "use client";
 
 import { DateTime } from "luxon";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -122,6 +123,14 @@ export function ManagePanel({ token }: { token: string }) {
 
       {actionable ? (
         <div className="flex flex-wrap gap-3">
+          {actions.reschedulable ? (
+            <Link
+              href={`/manage/${token}/reschedule`}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-border bg-surface px-4 py-2 font-medium text-fg hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+            >
+              Reschedule
+            </Link>
+          ) : null}
           {actions.cancellable ? (
             <Button variant="danger" onClick={() => setDialogOpen(true)}>
               Cancel booking

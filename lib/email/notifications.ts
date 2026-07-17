@@ -4,6 +4,7 @@ import { sendMail, type MailAttachment } from "./mailer";
 import {
   cancellationEmail,
   confirmationEmail,
+  rescheduleEmail,
   type BookingEmailData,
   type RenderedEmail,
 } from "./templates";
@@ -100,5 +101,17 @@ export async function sendCancellationEmails(
     "CANCEL",
     cancellationEmail(data, notification.invitee.timezone, "invitee", reason),
     cancellationEmail(data, notification.host.timezone, "host", reason),
+  );
+}
+
+export async function sendRescheduleEmails(
+  notification: BookingNotification,
+): Promise<EmailStatus> {
+  const data = emailData(notification);
+  return sendBoth(
+    notification,
+    "REQUEST",
+    rescheduleEmail(data, notification.invitee.timezone, "invitee"),
+    rescheduleEmail(data, notification.host.timezone, "host"),
   );
 }
