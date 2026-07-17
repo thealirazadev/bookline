@@ -31,9 +31,19 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   reschedule, and feed all exercised via curl + Mailpit; CANCEL/REQUEST .ics inspected for correct
   METHOD/UID/SEQUENCE.
 
+- 2026-07-18 — Phase 3 complete. Auth.js v5 credentials login against the seeded host (bcrypt),
+  split config (edge-safe `lib/auth.config.ts` for the middleware, node credentials in `lib/auth.ts`
+  delegating to `lib/host-credentials.ts`). `middleware.ts` guards `/dashboard*` (redirect) and
+  `/api/event-types*` + `/api/host/*` (401 JSON). Dashboard shell with nav + sign out; bookings
+  table (upcoming/past tabs, host-tz times, cancelled badged) with host-initiated cancel
+  (`POST /api/host/bookings/[id]/cancel`, `cancelledBy: host`, ownership-checked); settings page
+  with the iCal feed URL and copy control. Verified: build, lint, typecheck, 28 unit + 14
+  integration pass; manual curl confirmed 401/redirect guard, login (wrong vs right), host cancel
+  (401/200/410/404), and settings render.
+
 ## In progress
 
-- Phase 3 — host auth (Auth.js credentials) and dashboard.
+- Phase 4 — event type CRUD and availability editor.
 
 ## Decisions log
 
@@ -66,3 +76,8 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   genuine rule violations (notice, horizon, outside windows).
 - 2026-07-18 — React 19 lets function components take `ref` as a plain prop; `Button` and `Input`
   accept and forward it rather than using `forwardRef`.
+- 2026-07-18 — Auth.js v5 needs `trustHost: true` for the self-hosted `next start` deploy (no Vercel
+  host header), else every `/api/auth/*` call fails with UntrustedHost. Set in `lib/auth.config.ts`.
+- 2026-07-18 — `next-auth@5.0.0-beta.31` pulls `@auth/core` whose optional Email-provider peer wants
+  nodemailer 7; we keep the documented nodemailer 6 (own mailer, not Auth's Email provider). Added
+  `.npmrc` `legacy-peer-deps=true` so the documented stack installs reproducibly.
