@@ -1,5 +1,29 @@
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/db";
+import type { FeedBooking } from "@/lib/ics/feed";
+
+/** Confirmed bookings for a host's iCal feed, from 30 days ago onward. */
+export async function loadFeedBookings(
+  hostId: string,
+  now: Date = new Date(),
+): Promise<FeedBooking[]> {
+  const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const bookings = await prisma.booking.findMany({
+    where: { hostId, status: "confirmed", startUtc: { gte: from } },
+    orderBy: { startUtc: "asc" },
+    include: { eventType: { select: { name: true } } },
+  });
+  return bookings.map((booking) => ({
+    icsUid: booking.icsUid,
+    icsSequence: booking.icsSequence,
+    startUtc: booking.startUtc,
+    endUtc: booking.endUtc,
+    updatedAt: booking.updatedAt,
+    eventTypeName: booking.eventType.name,
+    inviteeName: booking.inviteeName,
+    inviteeEmail: booking.inviteeEmail,
+  }));
+}
 
 export function toUtcIso(instant: Date): string {
   return DateTime.fromJSDate(instant, { zone: "utc" }).toFormat(
