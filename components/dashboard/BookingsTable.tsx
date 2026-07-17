@@ -1,8 +1,10 @@
 "use client";
 
 import { DateTime } from "luxon";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { DashboardBooking } from "@/lib/queries/bookings";
 
@@ -25,8 +27,36 @@ export function BookingsTable({
   past,
   hostTimezone,
 }: BookingsTableProps) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("upcoming");
+  const [cancelTarget, setCancelTarget] = useState<DashboardBooking | null>(
+    null,
+  );
+  const [cancelling, setCancelling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const rows = tab === "upcoming" ? upcoming : past;
+
+  async function handleCancel() {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/host/bookings/${cancelTarget.id}/cancel`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error?.message ?? "Cancellation failed.");
+      }
+      setCancelTarget(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Cancellation failed.");
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,6 +96,9 @@ export function BookingsTable({
                 <th className="py-2 pr-4 font-medium">Event</th>
                 <th className="py-2 pr-4 font-medium">Invitee</th>
                 <th className="py-2 pr-4 font-medium">Status</th>
+                <th className="py-2 font-medium">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -90,6 +123,17 @@ export function BookingsTable({
                     >
                       {booking.status}
                     </Badge>
+                  </td>
+                  <td className="py-3 text-right">
+                    {tab === "upcoming" && booking.status === "confirmed" ? (
+                      <button
+                        type="button"
+                        onClick={() => setCancelTarget(booking)}
+                        className="rounded-md px-2 py-1 text-sm font-medium text-danger hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                      >
+                        Cancel
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -116,12 +160,38 @@ export function BookingsTable({
                   {formatWhen(booking.startUtc, hostTimezone)}
                 </p>
                 <p className="mt-1 text-sm">{booking.inviteeName}</p>
+                {tab === "upcoming" && booking.status === "confirmed" ? (
+                  <button
+                    type="button"
+                    onClick={() => setCancelTarget(booking)}
+                    className="mt-2 rounded-md px-2 py-1 text-sm font-medium text-danger hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                  >
+                    Cancel
+                  </button>
+                ) : null}
               </li>
             ))}
           </ul>
           <p className="text-xs text-fg-muted">Times shown in {hostTimezone}</p>
         </>
       )}
+
+      {error ? (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+
+      {cancelTarget ? (
+        <ConfirmDialog
+          title="Cancel this booking?"
+          message={`${cancelTarget.inviteeName} will be emailed a cancellation. This cannot be undone.`}
+          confirmLabel={cancelling ? "Cancelling..." : "Cancel booking"}
+          loading={cancelling}
+          onConfirm={handleCancel}
+          onClose={() => setCancelTarget(null)}
+        />
+      ) : null}
     </div>
   );
 }
