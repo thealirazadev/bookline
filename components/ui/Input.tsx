@@ -1,10 +1,11 @@
-import type { InputHTMLAttributes } from "react";
+import type { InputHTMLAttributes, Ref } from "react";
 import { useId } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
   hint?: string;
+  ref?: Ref<HTMLInputElement>;
 }
 
 export function Input({
@@ -13,6 +14,7 @@ export function Input({
   hint,
   className = "",
   id,
+  ref,
   ...props
 }: InputProps) {
   const generatedId = useId();
@@ -30,6 +32,7 @@ export function Input({
       </label>
       <input
         {...props}
+        ref={ref}
         id={inputId}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}

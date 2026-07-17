@@ -2,9 +2,16 @@
 
 import { DateTime } from "luxon";
 import { useCallback, useEffect, useState } from "react";
+import {
+  BookingConfirmation,
+  type BookingConfirmationData,
+} from "@/components/booking/BookingConfirmation";
+import { BookingForm } from "@/components/booking/BookingForm";
 import { MonthGrid } from "@/components/booking/MonthGrid";
 import { SlotList } from "@/components/booking/SlotList";
 import { TimezoneSelect } from "@/components/booking/TimezoneSelect";
+import { Button } from "@/components/ui/Button";
+import { Toast } from "@/components/ui/Toast";
 import type { DayAvailability, Slot } from "@/lib/slots/types";
 
 export interface BookingEventType {
@@ -34,6 +41,9 @@ export function BookingPage({ eventType }: { eventType: BookingEventType }) {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState<boolean>(false);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [confirmation, setConfirmation] =
+    useState<BookingConfirmationData | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const todayIso = DateTime.now().setZone(timezone).toISODate() ?? "";
@@ -94,11 +104,33 @@ export function BookingPage({ eventType }: { eventType: BookingEventType }) {
   const handleSelectDate = (date: string) => {
     setSelectedDate(date);
     setSelectedSlot(null);
+    setConfirmation(null);
+  };
+
+  const handleSelectSlot = (slot: Slot) => {
+    setSelectedSlot(slot);
+    setConfirmation(null);
   };
 
   const handleChangeTimezone = (next: string) => {
     setTimezone(next);
     setSelectedSlot(null);
+    setConfirmation(null);
+  };
+
+  const handleBooked = (data: BookingConfirmationData) => {
+    setConfirmation(data);
+    setSelectedSlot(null);
+    void loadDays();
+    if (selectedDate) void loadSlots(selectedDate);
+  };
+
+  const handleSlotTaken = (message: string, refreshed: Slot[] | null) => {
+    setToast(message);
+    setSelectedSlot(null);
+    if (refreshed) setSlots(refreshed);
+    else if (selectedDate) void loadSlots(selectedDate);
+    void loadDays();
   };
 
   return (
@@ -152,10 +184,37 @@ export function BookingPage({ eventType }: { eventType: BookingEventType }) {
             timezone={timezone}
             loading={slotsLoading}
             hasSelectedDate={selectedDate !== null}
-            onSelect={setSelectedSlot}
+            onSelect={handleSelectSlot}
           />
         </div>
+
+        {confirmation ? (
+          <div className="flex flex-col gap-3">
+            <BookingConfirmation data={confirmation} timezone={timezone} />
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setConfirmation(null);
+                setSelectedDate(null);
+              }}
+            >
+              Book another time
+            </Button>
+          </div>
+        ) : null}
+
+        {selectedSlot && !confirmation ? (
+          <BookingForm
+            eventTypeSlug={eventType.slug}
+            slot={selectedSlot}
+            timezone={timezone}
+            onBooked={handleBooked}
+            onSlotTaken={handleSlotTaken}
+          />
+        ) : null}
       </div>
+
+      {toast ? <Toast message={toast} onClose={() => setToast(null)} /> : null}
     </div>
   );
 }
