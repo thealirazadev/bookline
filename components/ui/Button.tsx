@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, Ref } from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -14,6 +14,7 @@ const VARIANTS: Record<Variant, string> = {
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   loading?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 }
 
 export function Button({
@@ -22,12 +23,14 @@ export function Button({
   disabled,
   className = "",
   children,
+  ref,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   return (
     <button
       {...props}
+      ref={ref}
       disabled={isDisabled}
       aria-disabled={isDisabled}
       aria-busy={loading}

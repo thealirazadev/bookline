@@ -2,6 +2,7 @@ import { buildInviteIcs, type InviteBooking } from "@/lib/ics/invite";
 import type { CalendarMethod } from "@/lib/ics/writer";
 import { sendMail, type MailAttachment } from "./mailer";
 import {
+  cancellationEmail,
   confirmationEmail,
   type BookingEmailData,
   type RenderedEmail,
@@ -86,5 +87,18 @@ export async function sendConfirmationEmails(
     "REQUEST",
     confirmationEmail(data, notification.invitee.timezone, "invitee"),
     confirmationEmail(data, notification.host.timezone, "host"),
+  );
+}
+
+export async function sendCancellationEmails(
+  notification: BookingNotification,
+  reason?: string,
+): Promise<EmailStatus> {
+  const data = emailData(notification);
+  return sendBoth(
+    notification,
+    "CANCEL",
+    cancellationEmail(data, notification.invitee.timezone, "invitee", reason),
+    cancellationEmail(data, notification.host.timezone, "host", reason),
   );
 }

@@ -7,6 +7,33 @@ export function toUtcIso(instant: Date): string {
   );
 }
 
+/** Full booking with the host and event-type context needed to act on it. */
+export async function loadBookingContext(bookingId: string) {
+  return prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: {
+      eventType: {
+        select: {
+          name: true,
+          slug: true,
+          durationMin: true,
+          bufferBeforeMin: true,
+          bufferAfterMin: true,
+          minNoticeMin: true,
+          maxDaysAhead: true,
+        },
+      },
+      host: {
+        select: { id: true, name: true, email: true, timezone: true },
+      },
+    },
+  });
+}
+
+export type BookingContext = NonNullable<
+  Awaited<ReturnType<typeof loadBookingContext>>
+>;
+
 export interface ManageBookingView {
   booking: {
     id: string;

@@ -3,6 +3,8 @@
 import { DateTime } from "luxon";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface ManageView {
@@ -22,6 +24,10 @@ export function ManagePanel({ token }: { token: string }) {
   const [view, setView] = useState<ManageView | null>(null);
   const [loading, setLoading] = useState(true);
   const [invalid, setInvalid] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,6 +49,30 @@ export function ManagePanel({ token }: { token: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function handleCancel() {
+    setCancelling(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/manage/${token}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reason.trim() ? { reason: reason.trim() } : {}),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error?.message ?? "Cancellation failed.");
+      }
+      setDialogOpen(false);
+      await load();
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Cancellation failed.",
+      );
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -90,12 +120,51 @@ export function ManagePanel({ token }: { token: string }) {
         </p>
       </div>
 
-      {!actionable ? (
+      {actionable ? (
+        <div className="flex flex-wrap gap-3">
+          {actions.cancellable ? (
+            <Button variant="danger" onClick={() => setDialogOpen(true)}>
+              Cancel booking
+            </Button>
+          ) : null}
+        </div>
+      ) : (
         <p className="text-sm text-fg-muted">
           {booking.status === "cancelled"
             ? "This booking has been cancelled."
             : "This booking can no longer be changed."}
         </p>
+      )}
+
+      {actionError ? (
+        <p role="alert" className="text-sm text-danger">
+          {actionError}
+        </p>
+      ) : null}
+
+      {dialogOpen ? (
+        <ConfirmDialog
+          title="Cancel this booking?"
+          message="The host and you will be emailed a cancellation. This cannot be undone."
+          confirmLabel={cancelling ? "Cancelling..." : "Cancel booking"}
+          loading={cancelling}
+          onConfirm={handleCancel}
+          onClose={() => setDialogOpen(false)}
+        >
+          <label
+            htmlFor="cancel-reason"
+            className="mb-1 block text-sm font-medium text-fg"
+          >
+            Reason (optional)
+          </label>
+          <textarea
+            id="cancel-reason"
+            value={reason}
+            maxLength={500}
+            onChange={(e) => setReason(e.target.value)}
+            className="min-h-[80px] w-full rounded-sm border border-border bg-bg px-3 py-2 text-fg outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-focus-ring"
+          />
+        </ConfirmDialog>
       ) : null}
     </div>
   );
