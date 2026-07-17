@@ -1,0 +1,115 @@
+// All timestamps are timestamptz stored in UTC. Local-time fields are explicit
+// minutes-of-day integers in the host's timezone. The btree_gist extension and
+// the booking_no_overlap exclusion constraint are added as raw SQL in the
+// initial migration (Prisma's schema DSL cannot express them).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Host {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  timezone     String
+  feedToken    String   @unique
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  eventTypes EventType[]
+  rules      AvailabilityRule[]
+  overrides  DateOverride[]
+  blackouts  BlackoutDate[]
+  bookings   Booking[]
+}
+
+model EventType {
+  id              String   @id @default(cuid())
+  hostId          String
+  name            String
+  slug            String   @unique
+  description     String   @default("")
+  durationMin     Int
+  bufferBeforeMin Int
+  bufferAfterMin  Int
+  minNoticeMin    Int
+  maxDaysAhead    Int
+  reminderLeadMin Int
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+
+  host     Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([hostId])
+}
+
+model AvailabilityRule {
+  id          String @id @default(cuid())
+  hostId      String
+  weekday     Int
+  startMinute Int
+  endMinute   Int
+
+  host Host @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@index([hostId])
+}
+
+model DateOverride {
+  id          String @id @default(cuid())
+  hostId      String
+  date        String
+  startMinute Int
+  endMinute   Int
+
+  host Host @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@index([hostId, date])
+}
+
+model BlackoutDate {
+  id     String @id @default(cuid())
+  hostId String
+  date   String
+
+  host Host @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@unique([hostId, date])
+}
+
+model Booking {
+  id              String    @id @default(cuid())
+  hostId          String
+  eventTypeId     String
+  inviteeName     String
+  inviteeEmail    String
+  inviteeTimezone String
+  startUtc        DateTime  @db.Timestamptz(3)
+  endUtc          DateTime  @db.Timestamptz(3)
+  blockStartUtc   DateTime  @db.Timestamptz(3)
+  blockEndUtc     DateTime  @db.Timestamptz(3)
+  status          String    @default("confirmed")
+  icsUid          String    @unique
+  icsSequence     Int       @default(0)
+  cancelledAt     DateTime? @db.Timestamptz(3)
+  cancelReason    String?
+  cancelledBy     String?
+  reminderSentAt  DateTime? @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+
+  host      Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  eventType EventType @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+
+  @@index([hostId, status])
+  @@index([eventTypeId])
+  @@index([startUtc])
+}
