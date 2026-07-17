@@ -10,15 +10,19 @@ export interface BookableEventType {
   description: string;
   config: EventTypeConfig;
   hostTimezone: string;
+  hostName: string;
+  hostEmail: string;
 }
 
-/** Load an active (publicly bookable) event type with its host timezone. */
+/** Load an active (publicly bookable) event type with its host details. */
 export async function getActiveEventType(
   slug: string,
 ): Promise<BookableEventType | null> {
   const eventType = await prisma.eventType.findFirst({
     where: { slug, active: true },
-    include: { host: { select: { id: true, timezone: true } } },
+    include: {
+      host: { select: { id: true, timezone: true, name: true, email: true } },
+    },
   });
   if (!eventType) return null;
   return {
@@ -28,6 +32,8 @@ export async function getActiveEventType(
     name: eventType.name,
     description: eventType.description,
     hostTimezone: eventType.host.timezone,
+    hostName: eventType.host.name,
+    hostEmail: eventType.host.email,
     config: {
       durationMin: eventType.durationMin,
       bufferBeforeMin: eventType.bufferBeforeMin,
