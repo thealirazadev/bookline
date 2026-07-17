@@ -1,9 +1,7 @@
-import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "@/lib/auth.config";
-import { prisma } from "@/lib/db";
-import { logger, redactEmail } from "@/lib/logger";
+import { verifyHostCredentials } from "@/lib/host-credentials";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -16,14 +14,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (typeof email !== "string" || typeof password !== "string") {
           return null;
         }
-        const host = await prisma.host.findUnique({ where: { email } });
-        if (!host) return null;
-        const valid = await bcrypt.compare(password, host.passwordHash);
-        if (!valid) {
-          logger.warn({ event: "auth.login_failed", to: redactEmail(email) });
-          return null;
-        }
-        return { id: host.id, email: host.email, name: host.name };
+        return verifyHostCredentials(email, password);
       },
     }),
   ],
