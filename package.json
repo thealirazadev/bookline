@@ -12,10 +12,15 @@
     "test": "vitest run --project unit",
     "test:watch": "vitest",
     "test:integration": "vitest run --project integration",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
+    "bcryptjs": "3.0.3",
     "next": "15.5.20",
     "react": "19.2.7",
     "react-dom": "19.2.7",
