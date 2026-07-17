@@ -31,6 +31,70 @@ export function toUtcIso(instant: Date): string {
   );
 }
 
+export interface DashboardBooking {
+  id: string;
+  eventTypeName: string;
+  inviteeName: string;
+  inviteeEmail: string;
+  startUtc: string;
+  endUtc: string;
+  status: string;
+}
+
+function toDashboardBooking(booking: {
+  id: string;
+  inviteeName: string;
+  inviteeEmail: string;
+  startUtc: Date;
+  endUtc: Date;
+  status: string;
+  eventType: { name: string };
+}): DashboardBooking {
+  return {
+    id: booking.id,
+    eventTypeName: booking.eventType.name,
+    inviteeName: booking.inviteeName,
+    inviteeEmail: booking.inviteeEmail,
+    startUtc: toUtcIso(booking.startUtc),
+    endUtc: toUtcIso(booking.endUtc),
+    status: booking.status,
+  };
+}
+
+/** Upcoming (future) and past bookings for the dashboard, host order. */
+export async function listDashboardBookings(
+  hostId: string,
+  now: Date = new Date(),
+): Promise<{ upcoming: DashboardBooking[]; past: DashboardBooking[] }> {
+  const select = {
+    id: true,
+    inviteeName: true,
+    inviteeEmail: true,
+    startUtc: true,
+    endUtc: true,
+    status: true,
+    eventType: { select: { name: true } },
+  };
+
+  const [upcoming, past] = await Promise.all([
+    prisma.booking.findMany({
+      where: { hostId, startUtc: { gte: now } },
+      orderBy: { startUtc: "asc" },
+      select,
+    }),
+    prisma.booking.findMany({
+      where: { hostId, startUtc: { lt: now } },
+      orderBy: { startUtc: "desc" },
+      select,
+    }),
+  ]);
+
+  return {
+    upcoming: upcoming.map(toDashboardBooking),
+    past: past.map(toDashboardBooking),
+  };
+}
+
 /** Full booking with the host and event-type context needed to act on it. */
 export async function loadBookingContext(bookingId: string) {
   return prisma.booking.findUnique({
