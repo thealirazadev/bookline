@@ -18,9 +18,22 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   touching ranges, and frees cancelled slots. Verified: build, lint, typecheck, 21 unit + 4
   integration tests all pass.
 
+- 2026-07-18 — Phase 2 complete. Public read endpoints (`/api/availability`, `/api/slots`) and the
+  booking flow: `/book` list, `/book/[slug]` picker (month grid, slot list, timezone select, form),
+  `POST /api/bookings` re-validating against the engine and inserting inside a transaction where the
+  exclusion constraint is authority (23P01 -> 409 SLOT_TAKEN with refreshedSlots; rule failures ->
+  422). SMTP mailer + templates + notifications send invitee/host confirmation with a
+  METHOD:REQUEST .ics attachment; SMTP failure yields emailStatus "pending" without rolling back.
+  Manage: signed HMAC tokens, `/manage/[token]` page, GET details, cancel (METHOD:CANCEL, SEQUENCE
+  +1, frees slot) and reschedule (same UID, SEQUENCE +1, updated invite). Token-authed iCal feed at
+  `/api/ical/[feedToken]`. Verified: build, lint, typecheck, 28 unit + 10 integration pass,
+  including `simultaneous-booking-single-winner`. Manual: booking, double-book (409), cancel,
+  reschedule, and feed all exercised via curl + Mailpit; CANCEL/REQUEST .ics inspected for correct
+  METHOD/UID/SEQUENCE.
+
 ## In progress
 
-- Phase 2 — public booking flow, emails, manage links, iCal feed.
+- Phase 3 — host auth (Auth.js credentials) and dashboard.
 
 ## Decisions log
 
@@ -47,3 +60,9 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   typed-client error (message carries `23P01`/`booking_no_overlap`) and any raw path (P2010 with
   `meta.code = 23P01`). Reason: `prisma.booking.create` surfaces the exclusion violation only as an
   unknown-request error message, so a message check is required alongside the structured code.
+- 2026-07-18 — Booking re-validation runs the engine with `blocks: []` (availability rules only), so
+  a slot already taken by another booking still reaches the insert and surfaces as 409 SLOT_TAKEN
+  (constraint authority) rather than being misreported as a 422 rule failure. 422 is reserved for
+  genuine rule violations (notice, horizon, outside windows).
+- 2026-07-18 — React 19 lets function components take `ref` as a plain prop; `Button` and `Input`
+  accept and forward it rather than using `forwardRef`.
