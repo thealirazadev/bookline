@@ -2,6 +2,23 @@ import { DateTime } from "luxon";
 import { prisma } from "@/lib/db";
 import type { EventTypeConfig, SlotQuery } from "@/lib/slots/types";
 
+export interface WeeklyRuleRecord {
+  id: string;
+  weekday: number;
+  startMinute: number;
+  endMinute: number;
+}
+
+export async function getWeeklyRules(
+  hostId: string,
+): Promise<WeeklyRuleRecord[]> {
+  return prisma.availabilityRule.findMany({
+    where: { hostId },
+    orderBy: [{ weekday: "asc" }, { startMinute: "asc" }],
+    select: { id: true, weekday: true, startMinute: true, endMinute: true },
+  });
+}
+
 export interface BookableEventType {
   id: string;
   hostId: string;
