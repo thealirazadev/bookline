@@ -111,9 +111,11 @@ export function BookingsTable({
                     {formatWhen(booking.startUtc, hostTimezone)}
                   </td>
                   <td className="py-3 pr-4">{booking.eventTypeName}</td>
-                  <td className="py-3 pr-4">
-                    <div>{booking.inviteeName}</div>
-                    <div className="text-fg-muted">{booking.inviteeEmail}</div>
+                  <td className="max-w-[16rem] py-3 pr-4">
+                    <div className="break-words">{booking.inviteeName}</div>
+                    <div className="break-words text-fg-muted">
+                      {booking.inviteeEmail}
+                    </div>
                   </td>
                   <td className="py-3 pr-4">
                     <Badge
