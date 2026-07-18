@@ -1,0 +1,4 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": ["prisma/migrations/**", ".next/**", "node_modules/**"]
+}
