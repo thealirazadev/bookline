@@ -4,6 +4,7 @@ import { sendMail, type MailAttachment } from "./mailer";
 import {
   cancellationEmail,
   confirmationEmail,
+  reminderEmail,
   rescheduleEmail,
   type BookingEmailData,
   type RenderedEmail,
@@ -114,4 +115,13 @@ export async function sendRescheduleEmails(
     rescheduleEmail(data, notification.invitee.timezone, "invitee"),
     rescheduleEmail(data, notification.host.timezone, "host"),
   );
+}
+
+/** Reminder to the invitee only, rendered in their timezone. Returns success. */
+export async function sendReminderEmail(
+  notification: BookingNotification,
+): Promise<boolean> {
+  const data = emailData(notification);
+  const email = reminderEmail(data, notification.invitee.timezone);
+  return sendMail({ to: notification.invitee.email, ...email });
 }
