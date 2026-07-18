@@ -28,7 +28,12 @@ export function ConfirmDialog({
   const messageId = useId();
 
   useEffect(() => {
+    const trigger = document.activeElement as HTMLElement | null;
     cancelRef.current?.focus();
+    return () => {
+      // Return focus to whatever opened the dialog.
+      trigger?.focus();
+    };
   }, []);
 
   function handleKeyDown(event: React.KeyboardEvent) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { DateTime } from "luxon";
+import { useEffect, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { DayAvailability } from "@/lib/slots/types";
 
@@ -34,7 +35,81 @@ export function MonthGrid({
   const first = DateTime.fromISO(`${month}-01`);
   const leading = first.weekday - 1; // Monday-based offset
   const monthLabel = first.toFormat("LLLL yyyy");
-  const availabilityByDate = new Map(days.map((d) => [d.date, d.hasSlots]));
+  const cellRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  const preferredFocus =
+    (selectedDate && days.some((d) => d.date === selectedDate)
+      ? selectedDate
+      : null) ??
+    (days.some((d) => d.date === todayIso) ? todayIso : null) ??
+    days[0]?.date ??
+    null;
+  const [focusedDate, setFocusedDate] = useState<string | null>(preferredFocus);
+
+  // Keep the roving focus target valid when the month (and its days) change.
+  useEffect(() => {
+    if (!focusedDate || !days.some((d) => d.date === focusedDate)) {
+      setFocusedDate(preferredFocus);
+    }
+  }, [days, focusedDate, preferredFocus]);
+
+  function focusDate(date: string) {
+    setFocusedDate(date);
+    cellRefs.current.get(date)?.focus();
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent) {
+    if (!focusedDate) return;
+    const index = days.findIndex((d) => d.date === focusedDate);
+    if (index < 0) return;
+    const column = (leading + index) % 7;
+
+    const goto = (target: number) => {
+      const clamped = Math.max(0, Math.min(days.length - 1, target));
+      event.preventDefault();
+      focusDate(days[clamped].date);
+    };
+
+    switch (event.key) {
+      case "ArrowRight":
+        goto(index + 1);
+        break;
+      case "ArrowLeft":
+        goto(index - 1);
+        break;
+      case "ArrowDown":
+        goto(index + 7);
+        break;
+      case "ArrowUp":
+        goto(index - 7);
+        break;
+      case "Home":
+        goto(index - column);
+        break;
+      case "End":
+        goto(index + (6 - column));
+        break;
+      case "PageUp":
+        event.preventDefault();
+        onChangeMonth(shiftMonth(month, -1));
+        break;
+      case "PageDown":
+        event.preventDefault();
+        onChangeMonth(shiftMonth(month, 1));
+        break;
+      case "Enter":
+      case " ": {
+        const day = days[index];
+        if (day?.hasSlots) {
+          event.preventDefault();
+          onSelect(day.date);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -60,7 +135,10 @@ export function MonthGrid({
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-sm text-fg-muted">
+      <div
+        className="grid grid-cols-7 gap-1 text-center text-sm text-fg-muted"
+        aria-hidden="true"
+      >
         {WEEKDAYS.map((day) => (
           <div key={day} className="py-1">
             {day}
@@ -75,41 +153,50 @@ export function MonthGrid({
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-7 gap-1">
+        <div
+          role="grid"
+          aria-label={`${monthLabel}, choose a day`}
+          onKeyDown={handleKeyDown}
+          className="grid grid-cols-7 gap-1"
+        >
           {Array.from({ length: leading }).map((_, i) => (
-            <div key={`pad-${i}`} />
+            <div key={`pad-${i}`} role="presentation" />
           ))}
           {days.map((day) => {
             const dayNum = DateTime.fromISO(day.date).day;
-            const hasSlots = availabilityByDate.get(day.date) ?? false;
             const isSelected = day.date === selectedDate;
             const isToday = day.date === todayIso;
-            if (!hasSlots) {
-              return (
-                <div
-                  key={day.date}
-                  aria-disabled="true"
-                  className="flex h-11 items-center justify-center rounded-sm text-fg-muted opacity-50"
-                >
-                  <span className="tabular-nums">{dayNum}</span>
-                </div>
-              );
-            }
+            const isFocusTarget = day.date === focusedDate;
+            const label = `${first.set({ day: dayNum }).toFormat("MMMM d")}, ${
+              day.hasSlots ? "times available" : "no times available"
+            }${isSelected ? ", selected" : ""}${isToday ? ", today" : ""}`;
             return (
               <button
                 key={day.date}
+                ref={(node) => {
+                  if (node) cellRefs.current.set(day.date, node);
+                  else cellRefs.current.delete(day.date);
+                }}
                 type="button"
-                onClick={() => onSelect(day.date)}
-                aria-pressed={isSelected}
-                aria-label={`${first.set({ day: dayNum }).toFormat("MMMM d")}, times available`}
+                role="gridcell"
+                tabIndex={isFocusTarget ? 0 : -1}
+                aria-selected={isSelected}
+                aria-disabled={!day.hasSlots}
+                aria-label={label}
+                onClick={() => {
+                  setFocusedDate(day.date);
+                  if (day.hasSlots) onSelect(day.date);
+                }}
                 className={`flex h-11 flex-col items-center justify-center rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${
-                  isSelected
-                    ? "bg-accent text-accent-fg"
-                    : "text-fg hover:bg-surface-2"
+                  day.hasSlots
+                    ? isSelected
+                      ? "bg-accent text-accent-fg"
+                      : "text-fg hover:bg-surface-2"
+                    : "text-fg-muted opacity-50"
                 } ${isToday && !isSelected ? "outline outline-1 outline-accent" : ""}`}
               >
                 <span className="tabular-nums">{dayNum}</span>
-                {!isSelected ? (
+                {day.hasSlots && !isSelected ? (
                   <span
                     className="mt-0.5 h-1 w-1 rounded-full bg-accent"
                     aria-hidden="true"
