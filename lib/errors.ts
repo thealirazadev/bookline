@@ -41,6 +41,7 @@ export class ApiError extends Error {
   readonly code: ErrorCode;
   readonly fields?: Record<string, string>;
   readonly extra?: Record<string, unknown>;
+  readonly status?: number;
 
   constructor(
     code: ErrorCode,
@@ -48,6 +49,7 @@ export class ApiError extends Error {
       message?: string;
       fields?: Record<string, string>;
       extra?: Record<string, unknown>;
+      status?: number;
     } = {},
   ) {
     super(options.message ?? DEFAULT_MESSAGE[code]);
@@ -55,6 +57,7 @@ export class ApiError extends Error {
     this.code = code;
     this.fields = options.fields;
     this.extra = options.extra;
+    this.status = options.status;
   }
 }
 
@@ -84,7 +87,7 @@ export function errorResponse(error: ApiError): NextResponse {
     },
     ...(error.extra ?? {}),
   };
-  return NextResponse.json(body, { status: STATUS[error.code] });
+  return NextResponse.json(body, { status: error.status ?? STATUS[error.code] });
 }
 
 /**
