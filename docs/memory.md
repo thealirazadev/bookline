@@ -41,9 +41,18 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   integration pass; manual curl confirmed 401/redirect guard, login (wrong vs right), host cancel
   (401/200/410/404), and settings render.
 
+- 2026-07-18 — Phase 4 complete. Event type CRUD (`/api/event-types` + `/[id]`): create/list/patch/
+  delete with Zod validation, duplicate-slug 400, delete-with-bookings 409 (via an ApiError status
+  override), dashboard list + create/edit forms. Availability: weekly rules GET/PUT (atomic replace,
+  overlap rejection incl. midnight-crossing via extended-interval intersection) + per-weekday editor;
+  date overrides (POST replaces a date's rows, overlap-checked) and blackout dates (unique, duplicate
+  400) with a combined editor. Public page reflects changes: verified an override replacing the
+  weekly window and a blackout zeroing a day via `/api/slots`. Verified: build, lint, typecheck, 42
+  unit + 14 integration pass.
+
 ## In progress
 
-- Phase 4 — event type CRUD and availability editor.
+- Phase 5 — reminders, a11y polish, e2e smoke test, launch checklist.
 
 ## Decisions log
 
