@@ -50,9 +50,20 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   weekly window and a blackout zeroing a day via `/api/slots`. Verified: build, lint, typecheck, 42
   unit + 14 integration pass.
 
+- 2026-07-18 — Phase 5 complete. Reminder job (`jobs/reminders.ts`) claims due bookings with a
+  single atomic `UPDATE ... WHERE reminderSentAt IS NULL` joined to the event type's lead, sends
+  one invitee reminder each in their timezone, and runs every 60s via `instrumentation.ts`;
+  `npm run reminders:once` for external cron. Idempotency proven by a concurrent-run integration
+  test. A11y: month grid rebuilt as an ARIA grid with roving tabindex + arrow/Home/End/PageUp-Down
+  keys and availability in each cell's accessible name (component test); dialogs return focus to
+  their trigger. Loading skeletons for the dashboard and booking routes; long-text wrapping.
+  Playwright e2e drives book -> Mailpit (invitee + host, text/calendar attachment) -> manage-link
+  cancel -> slot frees, all passing. Launch checklist updated. Final verification: build, lint,
+  typecheck, 45 unit, 17 integration, 1 e2e all pass.
+
 ## In progress
 
-- Phase 5 — reminders, a11y polish, e2e smoke test, launch checklist.
+- Implementation complete through Phase 5.
 
 ## Decisions log
 
@@ -90,3 +101,9 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
 - 2026-07-18 — `next-auth@5.0.0-beta.31` pulls `@auth/core` whose optional Email-provider peer wants
   nodemailer 7; we keep the documented nodemailer 6 (own mailer, not Auth's Email provider). Added
   `.npmrc` `legacy-peer-deps=true` so the documented stack installs reproducibly.
+- 2026-07-18 — Reminder SMTP-down policy: claim first (set reminderSentAt), then send; if the send
+  fails, reset reminderSentAt to NULL so the next 60s tick retries. Chosen over dropping the
+  reminder so a transient outage still delivers. Claim-before-send keeps a double-fire harmless.
+- 2026-07-18 — `@testing-library/react@16` needs `@testing-library/dom` as an explicit peer; added
+  it (10.4.1) as a dev dependency. Component tests set jsdom via a `// @vitest-environment jsdom`
+  docblock and call `afterEach(cleanup)` (no vitest globals, so RTL auto-cleanup is not registered).
