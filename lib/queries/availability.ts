@@ -19,6 +19,34 @@ export async function getWeeklyRules(
   });
 }
 
+export interface OverrideRecord {
+  id: string;
+  date: string;
+  startMinute: number;
+  endMinute: number;
+}
+
+export async function getOverrides(hostId: string): Promise<OverrideRecord[]> {
+  return prisma.dateOverride.findMany({
+    where: { hostId },
+    orderBy: [{ date: "asc" }, { startMinute: "asc" }],
+    select: { id: true, date: true, startMinute: true, endMinute: true },
+  });
+}
+
+export interface BlackoutRecord {
+  id: string;
+  date: string;
+}
+
+export async function getBlackouts(hostId: string): Promise<BlackoutRecord[]> {
+  return prisma.blackoutDate.findMany({
+    where: { hostId },
+    orderBy: { date: "asc" },
+    select: { id: true, date: true },
+  });
+}
+
 export interface BookableEventType {
   id: string;
   hostId: string;
