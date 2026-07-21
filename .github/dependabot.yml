@@ -1,0 +1,35 @@
+version: 2
+
+# Monthly, grouped updates. Minor and patch bumps arrive as one PR per
+# ecosystem so CI runs once for the batch; majors are deliberately left
+# ungrouped so each breaking upgrade is reviewed and approved on its own.
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    # Dependencies are pinned to exact versions, so bump the pin itself.
+    versioning-strategy: increase
+    groups:
+      npm-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci
