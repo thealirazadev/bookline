@@ -122,6 +122,11 @@ export function generateSlots(query: SlotQuery, hostDates: string[]): Slot[] {
     now,
   } = query;
 
+  // A non-positive duration would make windowStarts step by <= 0 and never
+  // advance (infinite loop). The event-type schema forbids it, but the engine
+  // is a standalone pure function, so guard it here rather than trust callers.
+  if (eventType.durationMin <= 0) return [];
+
   const noticeCutoff = DateTime.fromJSDate(now).plus({
     minutes: eventType.minNoticeMin,
   });

@@ -251,6 +251,32 @@ describe("slot engine rules and filters", () => {
     expect(slots).toEqual([]);
   });
 
+  it(
+    "returns no slots for a zero or negative duration without hanging",
+    () => {
+      // A non-positive duration must not send windowStarts into an infinite
+      // loop; a short timeout fails the test if the guard is ever removed.
+      const zero = generateSlots(
+        query({
+          eventType: { ...DEFAULT_EVENT, durationMin: 0 },
+          rules: [{ weekday: 0, startMinute: 540, endMinute: 600 }],
+        }),
+        ["2026-08-10"],
+      );
+      expect(zero).toEqual([]);
+
+      const negative = generateSlots(
+        query({
+          eventType: { ...DEFAULT_EVENT, durationMin: -30 },
+          rules: [{ weekday: 0, startMinute: 540, endMinute: 600 }],
+        }),
+        ["2026-08-10"],
+      );
+      expect(negative).toEqual([]);
+    },
+    1000,
+  );
+
   it("visitor date maps to two host dates across the dateline", () => {
     // Asia/Tokyo host (UTC+9), America/Los_Angeles visitor (UTC-7). Tokyo
     // 09:00 on 2026-08-11 is 2026-08-10 17:00 in Los Angeles.
