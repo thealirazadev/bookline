@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bookline
+          POSTGRES_PASSWORD: bookline
+          POSTGRES_DB: bookline
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bookline -d bookline"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://bookline:bookline@localhost:5432/bookline
+      AUTH_SECRET: ci-auth-secret
+      LINK_TOKEN_SECRET: ci-link-token-secret
+      APP_BASE_URL: http://localhost:3000
+      # No SMTP server runs in CI. sendMail logs the failure and returns false
+      # rather than throwing, so the suites exercise the EMAIL_PENDING path.
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: 1025
+      MAIL_FROM: Bookline <bookings@example.com>
+      NEXT_TELEMETRY_DISABLED: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      # .npmrc pins legacy-peer-deps=true and is committed, so npm ci picks it up.
+      - run: npm ci
+
+      - run: npx prisma generate
+
+      # Creates the btree_gist extension and the booking_no_overlap exclusion
+      # constraint that the concurrency and exclusion suites assert against.
+      - run: npx prisma migrate deploy
+
+      - run: npm run typecheck
+
+      - run: npm run lint
+
+      # Slot engine DST cases, ics writer, tokens, validation, components.
+      - run: npm run test
+
+      # DB-backed guarantees: simultaneous-booking-single-winner, exclusion
+      # constraint semantics, reminder idempotency.
+      - run: npm run test:integration
+
+      - run: npm run build
+
+      # npm run test:e2e is intentionally not run here: Playwright needs a
+      # browser download plus a booted next start and a live Mailpit inbox to
+      # read mail from, which is slow and flaky on CI. Run it locally against
+      # the docker compose stack (see docs/testing.md).
