@@ -61,6 +61,12 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   cancel -> slot frees, all passing. Launch checklist updated. Final verification: build, lint,
   typecheck, 45 unit, 17 integration, 1 e2e all pass.
 
+- 2026-07-22 — Repo hygiene: added `LICENSE` (MIT, Ali Raza) at the root and
+  `.github/workflows/ci.yml`. CI runs on push and pull_request to `main` against Node 24 with a
+  `postgres:16` service container, applies `prisma migrate deploy` (which creates `btree_gist` and
+  the `booking_no_overlap` exclusion constraint), then runs typecheck, lint, `npm run test`, and
+  `npm run test:integration` before the build.
+
 ## In progress
 
 - Implementation complete through Phase 5.
@@ -107,3 +113,9 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
 - 2026-07-18 — `@testing-library/react@16` needs `@testing-library/dom` as an explicit peer; added
   it (10.4.1) as a dev dependency. Component tests set jsdom via a `// @vitest-environment jsdom`
   docblock and call `afterEach(cleanup)` (no vitest globals, so RTL auto-cleanup is not registered).
+- 2026-07-22 — CI omits `npm run test:e2e`. Playwright needs a browser download plus a booted
+  `next start` and a live Mailpit inbox to assert against, which is slow and flaky on a runner;
+  it stays a local check against the compose stack. CI also runs without an SMTP server: `sendMail`
+  logs and returns false instead of throwing, so the DB-backed suites take the EMAIL_PENDING path
+  and still pass. Verified locally by pointing SMTP at a dead port and by replaying
+  `prisma migrate deploy` onto a fresh database before running the integration suite.
