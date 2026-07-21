@@ -176,4 +176,21 @@ describe("reschedule path", () => {
       rescheduleBooking(id, { startUtc: other, timezone: "UTC" }, now),
     ).rejects.toBeInstanceOf(ApiError);
   });
+
+  it("rejects a reschedule onto another confirmed booking (SLOT_TAKEN)", async () => {
+    // The exclusion constraint, not the application pre-check, must be the
+    // authority when a reschedule lands on a slot a different booking holds.
+    const now = new Date();
+    const [first, second] = await openSlots(now, 2);
+    const moving = await createConfirmed(first);
+    await createConfirmed(second);
+
+    await expect(
+      rescheduleBooking(moving, { startUtc: second, timezone: "UTC" }, now),
+    ).rejects.toMatchObject({ code: "SLOT_TAKEN" });
+
+    // The moving booking stays put; the constraint refused the overlap.
+    const row = await prisma.booking.findUniqueOrThrow({ where: { id: moving } });
+    expect(row.startUtc.toISOString()).toBe(new Date(first).toISOString());
+  });
 });
