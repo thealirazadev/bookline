@@ -67,6 +67,15 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   the `booking_no_overlap` exclusion constraint), then runs typecheck, lint, `npm run test`, and
   `npm run test:integration` before the build.
 
+- 2026-07-22 — Senior quality pass. Code review of the slot engine, reschedule/exclusion path,
+  manage tokens, .ics writer, iCal feed, and reminder scheduler found one real defect: a
+  `durationMin` of 0 or less made `windowStarts` step by <= 0 and loop forever, hanging every
+  caller. Fixed with a guard in `generateSlots` plus a regression test that hangs without it.
+  Everything else in those areas verified sound (details in the decisions log). Added a reschedule
+  test covering the exclusion constraint against another confirmed booking, README badges and a
+  design-decisions section, `scripts/benchmark.ts` (`npm run bench`) with measured numbers in the
+  README, `SECURITY.md`, and a grouped monthly `.github/dependabot.yml`.
+
 ## In progress
 
 - Implementation complete through Phase 5.
@@ -113,6 +122,25 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
 - 2026-07-18 — `@testing-library/react@16` needs `@testing-library/dom` as an explicit peer; added
   it (10.4.1) as a dev dependency. Component tests set jsdom via a `// @vitest-environment jsdom`
   docblock and call `afterEach(cleanup)` (no vitest globals, so RTL auto-cleanup is not registered).
+- 2026-07-22 — The slot engine guards `durationMin <= 0` itself rather than relying on
+  `eventTypeCreateSchema.positive()`. Reason: the engine is a pure function with its own public
+  surface, and the failure mode is an unrecoverable infinite loop (a hung request), not a wrong
+  answer. Cheap guard, catastrophic failure avoided.
+- 2026-07-22 — Review conclusions on areas that turned out sound, recorded so they are not
+  re-litigated: visitor-timezone DST bucketing is instant-based, so a 23-hour spring-forward
+  visitor day yields 23 slots and a 25-hour fall-back day yields 25 unique instants; minimum-notice
+  and max-days-ahead boundaries are inclusive on both the engine and re-validation side because
+  both run the same code; the engine's buffered-candidate check and the DB constraint compare
+  identical ranges, so they cannot disagree; reschedule cannot create an overlap the constraint
+  misses (it never changes `hostId`, and cancelled rows are genuinely free); manage tokens are
+  constant-time compared, canonical-encoding checked, and booking-bound; `foldLine` iterates code
+  points so folding never splits a multi-byte character (verified with 4-byte astral emoji); the
+  feed token is 256-bit random with a bare 404 on miss; and the reminder claim is a single atomic
+  UPDATE, so a process restart loses a reminder rather than duplicating one.
+- 2026-07-22 — Benchmarks are committed as a script (`scripts/benchmark.ts`) rather than prose
+  numbers, and the README states the hardware and the concurrent load the figures were taken under.
+  Reason: a performance claim nobody can reproduce is not a claim. Slot generation is dominated by
+  Luxon zone conversion (all-UTC is ~4x cheaper than any real IANA pair), not by rule evaluation.
 - 2026-07-22 — CI omits `npm run test:e2e`. Playwright needs a browser download plus a booted
   `next start` and a live Mailpit inbox to assert against, which is slow and flaky on a runner;
   it stays a local check against the compose stack. CI also runs without an SMTP server: `sendMail`
