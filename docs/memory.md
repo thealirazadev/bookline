@@ -147,3 +147,26 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   logs and returns false instead of throwing, so the DB-backed suites take the EMAIL_PENDING path
   and still pass. Verified locally by pointing SMTP at a dead port and by replaying
   `prisma migrate deploy` onto a fresh database before running the integration suite.
+- 2026-07-22 — Dependency security pass. Ten open Dependabot alerts (3 high, 6 medium, 1 low) closed;
+  `npm audit` now reports 0. Nodemailer went 6.10.1 -> 9.0.3: eight of the ten alerts were nodemailer,
+  and the highest (GHSA-p6gq-j5cr-w38f, raw-option file/URL access bypass) is only fixed in 9.0.1, so
+  the 8.x line was not enough. `lib/email/mailer.ts` is the only consumer and needed no change --
+  `createTransport`/`sendMail` are unchanged across 7/8/9, and the three documented breaks (SES SDK
+  swap, `NoAuth` -> `ENOAUTH`, default TLS verification when fetching remote attachment content) do
+  not apply to an SMTP transport that passes attachment bodies inline. Verified by sending a real
+  message with an .ics attachment through Mailpit. `docs/architecture.md` was updated from
+  "Nodemailer 6" to 9 to match.
+- 2026-07-22 — Supersedes the 2026-07-18 `.npmrc` note: `legacy-peer-deps=true` is gone. `@auth/core`
+  still caps its optional Email-provider peer at nodemailer 8, so 9.x conflicts, but the project does
+  not use that provider (credentials only, own mailer). Replaced the repo-wide flag with a scoped
+  `overrides: { "next-auth": { "nodemailer": "$nodemailer" } }`, which states the one deliberate
+  deviation instead of switching peer checking off everywhere. `npm ci` resolves clean without the
+  flag; the CI comment that referenced `.npmrc` was updated.
+- 2026-07-22 — postcss and sharp are fixed with `overrides` under `next`, not by upgrading Next.
+  Reason: Next pins `postcss` to exactly 8.4.31 and `sharp` to `^0.34.x` in every published release
+  including 16.2.11, so no Next upgrade clears either advisory; only an override does. postcss is
+  forced to 8.5.21 (the direct devDependency was pinned to the same version so the tree dedupes to
+  one copy) and sharp to 0.35.3. Both are drop-in within their line, and sharp is inert here anyway:
+  the app has no `next/image` usage. Note that npm only applies a new override on a full re-resolve
+  (`rm -rf node_modules package-lock.json && npm install`); a plain `npm install` over the existing
+  lockfile silently leaves the nested copy in place.

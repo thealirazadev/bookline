@@ -192,9 +192,13 @@ committed. Every runtime dependency below is proposed and needs owner approval b
   (pure JS, no native build step).
 - **Zod 3** — one validation layer for every route handler body/query; schemas double as the
   source of the field-level error messages in `docs/api-contracts.md`.
-- **Nodemailer 6 + SMTP** — plain SMTP keeps the project provider-agnostic. Dev mailbox is
+- **Nodemailer 9 + SMTP** — plain SMTP keeps the project provider-agnostic. Dev mailbox is
   **Mailpit** via `docker-compose.yml` (SMTP on 1025, web UI on 8025) so email flows are testable
-  locally with zero external accounts.
+  locally with zero external accounts. Was pinned to 6 at design time; moved to 9 on 2026-07-22
+  because the 6.x and 7.x lines carry unpatched advisories and only 9.0.1+ clears all of them.
+  `lib/email/mailer.ts` needed no change: the 7/8/9 breaks are the SES SDK swap, the `NoAuth` →
+  `ENOAUTH` error-code rename, and default TLS verification when fetching remote attachment content,
+  none of which this SMTP-only, inline-attachment mailer touches.
 - **Hand-rolled .ics writer (no dependency)** — RFC 5545 output is a differentiator here: METHOD,
   stable UID, SEQUENCE, and CANCEL handling must be exactly right, and the popular `ics` package
   gets METHOD/SEQUENCE control wrong or awkward. The needed subset (VCALENDAR, VEVENT, TZID-free
