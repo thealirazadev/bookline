@@ -45,7 +45,8 @@ jobs:
           node-version: "24"
           cache: npm
 
-      # .npmrc pins legacy-peer-deps=true and is committed, so npm ci picks it up.
+      # Peer resolution is clean: the nodemailer override in package.json
+      # replaces the old legacy-peer-deps=true .npmrc workaround.
       - run: npm ci
 
       - run: npx prisma generate

@@ -31,6 +31,11 @@
     "react-dom": "19.2.7",
     "zod": "3.25.76"
   },
+  "overrides": {
+    "next-auth": {
+      "nodemailer": "$nodemailer"
+    }
+  },
   "devDependencies": {
     "@playwright/test": "1.61.1",
     "@testing-library/dom": "10.4.1",
