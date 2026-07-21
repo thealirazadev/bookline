@@ -104,6 +104,41 @@ docker run -d --name bookline-postgres \
 The double-booking guarantee relies on a PostgreSQL `btree_gist` exclusion
 constraint, so a real Postgres (not SQLite) is required.
 
+## Benchmarks
+
+Measured with `npm run bench` (`scripts/benchmark.ts`), which times the pure slot engine and
+booking-insert transactions against the compose Postgres. Reproduce it yourself; the numbers below
+are only claims about this machine.
+
+**Conditions.** 12th Gen Intel Core i5-1235U (10 cores / 12 threads), 31 GiB RAM, Linux 6.8,
+Node 24.18.0, PostgreSQL 16.14 in Docker on the same host (local socket, default `fsync=on`
+settings). Figures are the **median of 4 runs**; `p50` is the within-run median latency and
+`ops/sec` is `1000/mean` as printed by the script. The machine was running other workloads during
+measurement (load average 5–6 across 12 threads), so treat these as a conservative floor rather
+than a best case — the slot figures in particular moved up to ~2x on the noisiest run.
+
+| Operation | p50 (ms) | ops/sec |
+| --- | --- | --- |
+| `daysForMonth` — UTC host, UTC visitor | 12.4 | 76 |
+| `daysForMonth` — New_York host, Berlin visitor | 50.0 | 19 |
+| `daysForMonth` — Tokyo host, Los_Angeles visitor | 54.3 | 18 |
+| `daysForMonth` — Chatham host, Kolkata visitor | 44.7 | 21 |
+| `slotsForDay` — New_York host, Berlin visitor | 3.8 | 228 |
+| `generateSlots` — 365 host dates in one call, New_York | 466.6 | 2.1 |
+| Booking insert transaction (500 sequential, constraint active) | 2.7 | 331 |
+
+Reading these: slot generation is dominated by Luxon timezone conversion, not by the rule logic —
+an all-UTC month is ~4x cheaper than any real IANA host/visitor pair, and the pair's specific
+offsets barely matter (a 45-minute-offset zone like Pacific/Chatham costs about the same as
+Berlin). The endpoints the app actually serves are month- and day-scoped, so they sit at ~50 ms and
+~4 ms; the 365-day figure is a deliberate stress case showing the cost scales linearly (~1.3 ms per
+host date) if a range query is ever exposed. On the database side, each booking is one transaction
+whose commit is checked by the `booking_no_overlap` exclusion constraint, at ~2.7 ms p50 —
+sequential on a single connection, so it is a latency floor, not a saturation number.
+
+Event-type config for the slot runs: 30-minute duration, 10-minute buffers each side, 120-minute
+minimum notice, Mon–Fri 09:00–17:00 in the host's zone.
+
 ## Test
 
 ```bash
@@ -112,6 +147,7 @@ npm run test                # Vitest unit + component (no DB required)
 npm run test:integration    # Vitest DB-backed suite (requires the compose stack)
 npm run test:e2e            # Playwright smoke test (requires the compose stack)
 npm run build               # production build
+npm run bench               # slot-engine and booking-transaction benchmarks
 ```
 
 ## License

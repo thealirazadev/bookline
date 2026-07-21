@@ -14,7 +14,8 @@
     "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test",
     "db:seed": "prisma db seed",
-    "reminders:once": "tsx jobs/reminders.ts"
+    "reminders:once": "tsx jobs/reminders.ts",
+    "bench": "tsx scripts/benchmark.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
