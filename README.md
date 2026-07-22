@@ -11,6 +11,27 @@ through signed links, and an iCal feed lets external calendars subscribe.
 
 Status: in development
 
+## Screenshots
+
+The public booking page renders the host's availability in the visitor's own timezone. Here the
+host works 09:00–17:00 in Europe/Berlin; a visitor in that zone sees a 9-to-5 grid, and a visitor
+in America/New_York sees the identical availability shifted to 03:00–10:30.
+
+| Public booking page (visitor in host's zone) | Same availability for a New York visitor |
+| --- | --- |
+| ![Public booking page: the 30 minute intro call, a July month grid, and 30-minute slots from 9:00 AM listed in Europe/Berlin](docs/images/booking-page-light.png) | ![The same booking page detected as America/New York, showing the host's Berlin availability as slots from 3:00 AM to 10:30 AM](docs/images/booking-timezone-new-york.png) |
+
+| Booking confirmation | Host dashboard |
+| --- | --- |
+| ![Confirmation panel reading "You're booked" for a 60 minute consultation on Thursday, July 30 at 2:00 PM, with a cancel-or-reschedule link](docs/images/booking-confirmation.png) | ![Host dashboard listing upcoming confirmed bookings by date, event type and invitee, with times shown in Europe/Berlin](docs/images/dashboard-light.png) |
+
+The booking page and dashboard also render in dark mode
+([booking page](docs/images/booking-page-dark.png), [dashboard](docs/images/dashboard-dark.png)).
+
+Screenshots are genuine captures of the running app against a seeded demo database. Reproduce them
+with `scripts/demo-seed.ts` (seed a host, two event types, availability and bookings) and
+`scripts/capture-screenshots.ts` (drive the real flows with Playwright).
+
 ## Stack
 
 - Next.js 15 (App Router) + TypeScript
