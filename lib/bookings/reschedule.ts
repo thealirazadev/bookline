@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { isSlotConflict } from "@/lib/bookings/conflict";
+import { isRecordNotFound, isSlotConflict } from "@/lib/bookings/conflict";
 import { prisma } from "@/lib/db";
 import { sendRescheduleEmails, type EmailStatus } from "@/lib/email/notifications";
 import { env } from "@/lib/env";
@@ -90,11 +90,15 @@ export async function rescheduleBooking(
   const blockStartUtc = new Date(startUtc.getTime() - bufferBeforeMin * 60_000);
   const blockEndUtc = new Date(endUtc.getTime() + bufferAfterMin * 60_000);
 
+  // Guard the transition on the status and time we validated above. If a
+  // concurrent cancel (or the start passing) lands between the read and here,
+  // the WHERE matches no row and Postgres rejects the update (P2025) rather than
+  // silently moving and re-inviting a booking that is no longer actionable.
   let updated;
   try {
     updated = await prisma.$transaction((tx) =>
       tx.booking.update({
-        where: { id: bookingId },
+        where: { id: bookingId, status: "confirmed", startUtc: { gt: now } },
         data: {
           startUtc,
           endUtc,
@@ -114,6 +118,7 @@ export async function rescheduleBooking(
       );
       throw slotTaken(refreshedSlots);
     }
+    if (isRecordNotFound(error)) throw bookingNotActionable();
     throw error;
   }
 

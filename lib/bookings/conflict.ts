@@ -23,3 +23,13 @@ export function isSlotConflict(error: unknown): boolean {
   }
   return false;
 }
+
+// A guarded update (`where` includes the current status) that matches no row
+// surfaces as P2025. We use it to detect that a concurrent transition changed
+// the booking out from under us between the status read and the update.
+export function isRecordNotFound(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2025"
+  );
+}
