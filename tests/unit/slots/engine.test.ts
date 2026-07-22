@@ -300,6 +300,128 @@ describe("slot engine rules and filters", () => {
     expect(hostDate).toBe("2026-08-11");
   });
 
+  it("visitor-timezone fall-back day holds a 25th hourly slot", () => {
+    // Host in UTC (no DST) open around the clock; the DST lives entirely in the
+    // visitor's zone. 2026-11-01 is a 25-hour local day in America/New_York, so
+    // the visitor-local date must bucket 25 distinct hourly instants.
+    const wideRules = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
+      weekday,
+      startMinute: 0,
+      endMinute: 1440,
+    }));
+    const slots = slotsForDay(
+      query({ rules: wideRules }),
+      "America/New_York",
+      "2026-11-01",
+    );
+    expect(slots).toHaveLength(25);
+    // The local day runs 00:00 EDT (04:00Z) to 00:00 EST next day (05:00Z),
+    // inclusive of the first instant and exclusive of the next midnight.
+    expect(starts(slots)[0]).toBe("2026-11-01T04:00:00Z");
+    expect(starts(slots).at(-1)).toBe("2026-11-02T04:00:00Z");
+    for (const slot of slots) {
+      expect(
+        DateTime.fromISO(slot.startUtc, { zone: "utc" })
+          .setZone("America/New_York")
+          .toISODate(),
+      ).toBe("2026-11-01");
+    }
+  });
+
+  it("visitor-timezone spring-forward day holds only 23 hourly slots", () => {
+    const wideRules = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
+      weekday,
+      startMinute: 0,
+      endMinute: 1440,
+    }));
+    const spring = slotsForDay(
+      query({ rules: wideRules }),
+      "America/New_York",
+      "2026-03-08",
+    );
+    expect(spring).toHaveLength(23);
+    expect(starts(spring)[0]).toBe("2026-03-08T05:00:00Z");
+
+    // A normal 24-hour local day is the control.
+    const normal = slotsForDay(
+      query({ rules: wideRules }),
+      "America/New_York",
+      "2026-06-07",
+    );
+    expect(normal).toHaveLength(24);
+  });
+
+  it("minimum notice keeps a slot that starts exactly on the cutoff", () => {
+    // now 09:00Z + 60 min notice => cutoff 10:00Z, landing on a slot start. The
+    // comparison is strict (< cutoff drops), so 10:00 is kept and 09:30 is not.
+    const slots = generateSlots(
+      query({
+        eventType: { ...DEFAULT_EVENT, durationMin: 30, minNoticeMin: 60 },
+        rules: [{ weekday: 0, startMinute: 540, endMinute: 720 }],
+        now: new Date("2026-08-10T09:00:00Z"),
+      }),
+      ["2026-08-10"],
+    );
+    expect(starts(slots)[0]).toBe("2026-08-10T10:00:00Z");
+    expect(starts(slots)).not.toContain("2026-08-10T09:30:00Z");
+    expect(slots).toHaveLength(4);
+  });
+
+  it("max-days horizon is measured from the host-local day, not the UTC day", () => {
+    // now is 2026-08-10T03:00Z, which is still 2026-08-09 (23:00) in New York.
+    // With maxDaysAhead 1 the horizon is host-local Aug 10, so an Aug 10 slot is
+    // allowed but an Aug 11 slot is not, even though the UTC day is already the
+    // 10th (a UTC-based horizon would wrongly admit the 11th).
+    const slots = generateSlots(
+      query({
+        hostTimezone: "America/New_York",
+        eventType: { ...DEFAULT_EVENT, maxDaysAhead: 1 },
+        rules: [
+          { weekday: 0, startMinute: 540, endMinute: 600 },
+          { weekday: 1, startMinute: 540, endMinute: 600 },
+        ],
+        now: new Date("2026-08-10T03:00:00Z"),
+      }),
+      ["2026-08-10", "2026-08-11"],
+    );
+    expect(starts(slots)).toContain("2026-08-10T13:00:00Z");
+    expect(starts(slots)).not.toContain("2026-08-11T13:00:00Z");
+  });
+
+  it("asymmetric buffers block candidates on both sides independently", () => {
+    // 30-min event, 15-min before and 30-min after buffer. A booking just before
+    // the window is only reachable through the before-buffer; a booking near the
+    // end only through the after-buffer. Touching (half-open) ranges are allowed.
+    const slots = generateSlots(
+      query({
+        eventType: {
+          ...DEFAULT_EVENT,
+          durationMin: 30,
+          bufferBeforeMin: 15,
+          bufferAfterMin: 30,
+        },
+        rules: [{ weekday: 0, startMinute: 540, endMinute: 720 }],
+        blocks: [
+          {
+            startUtc: new Date("2026-08-10T08:50:00Z"),
+            endUtc: new Date("2026-08-10T09:00:00Z"),
+          },
+          {
+            startUtc: new Date("2026-08-10T11:00:00Z"),
+            endUtc: new Date("2026-08-10T11:10:00Z"),
+          },
+        ],
+      }),
+      ["2026-08-10"],
+    );
+    // 09:00 dies to the before-buffer; 10:30 and 11:00 die to the after-buffer.
+    expect(starts(slots)).toEqual([
+      "2026-08-10T09:30:00Z",
+      "2026-08-10T10:00:00Z",
+      "2026-08-10T11:30:00Z",
+    ]);
+  });
+
   it("daysForMonth marks only days that have open slots", () => {
     const days = daysForMonth(
       query({
