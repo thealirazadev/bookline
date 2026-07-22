@@ -106,6 +106,27 @@ describe("reminder idempotency", () => {
     expect(vi.mocked(sendMail)).toHaveBeenCalledTimes(1);
   });
 
+  it("does not resend a reminder a prior process claimed before restart", async () => {
+    // A previous process claimed this reminder (reminderSentAt set) and then
+    // died before the delivery outcome was known. Because the claim is persisted
+    // and this run starts with no in-memory state, a restart must not fire it
+    // again: the guarantee is at-most-once, backed by the row and not the loop.
+    const now = new Date();
+    const id = await createDueBooking(now);
+    const claimedAt = new Date(now.getTime() - 5_000);
+    await prisma.booking.update({
+      where: { id },
+      data: { reminderSentAt: claimedAt },
+    });
+
+    const sent = await runReminders(now);
+
+    expect(sent).toBe(0);
+    expect(vi.mocked(sendMail)).not.toHaveBeenCalled();
+    const row = await prisma.booking.findUniqueOrThrow({ where: { id } });
+    expect(row.reminderSentAt?.toISOString()).toBe(claimedAt.toISOString());
+  });
+
   it("never reminds a cancelled booking", async () => {
     const now = new Date();
     const id = await createDueBooking(now);
