@@ -76,6 +76,25 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   design-decisions section, `scripts/benchmark.ts` (`npm run bench`) with measured numbers in the
   README, `SECURITY.md`, and a grouped monthly `.github/dependabot.yml`.
 
+- 2026-07-23 — Concurrency hardening + coverage pass. Fixed a read-then-update race the prior
+  review flagged: `rescheduleBooking`/`cancelBooking` read status then updated by id alone, so a
+  cancel committing in between let a reschedule move (and re-invite) a now-cancelled booking, and
+  let two cancels both fire. Both transitions are now guarded updates predicated on the row still
+  being confirmed and future (`where: { id, status: "confirmed", startUtc: { gt: now } }`); a miss
+  surfaces as P2025 -> BOOKING_NOT_ACTIONABLE (`isRecordNotFound` in `lib/bookings/conflict.ts`).
+  Two integration tests (`reschedule-cancel-race.test.ts`) drive the exact interleaving by firing a
+  committed cancel inside the caller's own status read (module-mocked `loadBookingContext`); both
+  fail against the pre-fix code. Added coverage: five slot-engine tests (visitor-timezone
+  fall-back 25 / spring-forward 23 / normal 24 hourly slots, min-notice cutoff inclusivity,
+  host-local-day horizon boundary, asymmetric before/after buffers on both sides) — no engine bug
+  found; four `buildInviteIcs` unit tests (REQUEST/CANCEL status, stable UID across a
+  reschedule series, multi-byte SUMMARY folding); an ics-pipeline integration test asserting the
+  emitted .ics carries SEQUENCE 0->1->2->3 with one stable UID and METHOD flipping to CANCEL across
+  create/reschedule/reschedule/cancel; and a reminder restart test proving a persisted claim is not
+  re-sent by a fresh process. Verified: typecheck, lint, 55 unit + 22 integration (from 46 + 18),
+  build; `prisma migrate deploy` re-applied to a fresh Postgres 16 database with `btree_gist` and
+  `booking_no_overlap` confirmed present.
+
 ## In progress
 
 - Implementation complete through Phase 5.
@@ -137,6 +156,15 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   points so folding never splits a multi-byte character (verified with 4-byte astral emoji); the
   feed token is 256-bit random with a bare 404 on miss; and the reminder claim is a single atomic
   UPDATE, so a process restart loses a reminder rather than duplicating one.
+- 2026-07-23 — Reschedule/cancel state transitions are made atomic with a guarded `update` whose
+  `where` re-states the status/time read earlier, not with `updateMany` + a refetch. Reason: the
+  guarded `update` is a single `UPDATE ... WHERE id = ? AND status = 'confirmed' AND startUtc > ?`
+  that returns the row for the invite email; under READ COMMITTED, Postgres re-evaluates the WHERE
+  against the latest committed row (EvalPlanQual), so a cancel that commits first makes the update
+  match zero rows (P2025). `updateMany` cannot return the row and would need a second, separately
+  racy read. Extended-where on `update` is GA in Prisma 6, so no preview flag is needed. This
+  refines the 2026-07-22 review note that called the reschedule path sound: it was sound against the
+  exclusion constraint and overlaps, but not against a concurrent status change, which this fixes.
 - 2026-07-22 — Benchmarks are committed as a script (`scripts/benchmark.ts`) rather than prose
   numbers, and the README states the hardware and the concurrent load the figures were taken under.
   Reason: a performance claim nobody can reproduce is not a claim. Slot generation is dominated by
