@@ -168,3 +168,27 @@ describe("reschedule vs concurrent cancel", () => {
     expect(row.icsSequence).toBe(1);
   });
 });
+
+describe("cancel vs concurrent cancel", () => {
+  it("lets only one of two interleaved cancels take effect", async () => {
+    const now = new Date();
+    const [current] = await openSlots(now, 1);
+    const id = await createConfirmed(current);
+
+    // A second cancel commits inside the first cancel's status read.
+    race.onRead = async (bookingId) => {
+      await cancelBooking(bookingId, { cancelledBy: "host" }, now);
+    };
+    race.armed = true;
+
+    await expect(
+      cancelBooking(id, { cancelledBy: "invitee" }, now),
+    ).rejects.toMatchObject({ code: "BOOKING_NOT_ACTIONABLE" });
+
+    // The winning (host) cancel applied once; SEQUENCE bumped exactly once.
+    const row = await prisma.booking.findUniqueOrThrow({ where: { id } });
+    expect(row.status).toBe("cancelled");
+    expect(row.cancelledBy).toBe("host");
+    expect(row.icsSequence).toBe(1);
+  });
+});

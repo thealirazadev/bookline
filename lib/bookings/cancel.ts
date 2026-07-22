@@ -1,3 +1,4 @@
+import { isRecordNotFound } from "@/lib/bookings/conflict";
 import { prisma } from "@/lib/db";
 import { sendCancellationEmails, type EmailStatus } from "@/lib/email/notifications";
 import { env } from "@/lib/env";
@@ -30,16 +31,26 @@ export async function cancelBooking(
     throw bookingNotActionable();
   }
 
-  const updated = await prisma.booking.update({
-    where: { id: bookingId },
-    data: {
-      status: "cancelled",
-      cancelledAt: now,
-      cancelReason: options.reason ?? null,
-      cancelledBy: options.cancelledBy,
-      icsSequence: { increment: 1 },
-    },
-  });
+  // Guard on the status/time read above so two concurrent cancels cannot both
+  // win: only the transition from a still-confirmed, still-future row applies.
+  // A loser matches no row (P2025) and is reported as not actionable rather than
+  // sending a second cancellation and bumping SEQUENCE twice.
+  let updated;
+  try {
+    updated = await prisma.booking.update({
+      where: { id: bookingId, status: "confirmed", startUtc: { gt: now } },
+      data: {
+        status: "cancelled",
+        cancelledAt: now,
+        cancelReason: options.reason ?? null,
+        cancelledBy: options.cancelledBy,
+        icsSequence: { increment: 1 },
+      },
+    });
+  } catch (error) {
+    if (isRecordNotFound(error)) throw bookingNotActionable();
+    throw error;
+  }
 
   const url = manageUrl(env.APP_BASE_URL, booking.id, env.LINK_TOKEN_SECRET);
   const emailStatus = await sendCancellationEmails(
