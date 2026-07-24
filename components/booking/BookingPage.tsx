@@ -152,9 +152,6 @@ export function BookingPage({ eventType }: { eventType: BookingEventType }) {
           detected={detected}
           onChange={handleChangeTimezone}
         />
-        <p className="sr-only" aria-live="polite">
-          Times shown in {timezone}
-        </p>
       </div>
 
       <div className="flex flex-col gap-6 md:w-3/5">
