@@ -1,6 +1,7 @@
 "use client";
 
 import { DateTime } from "luxon";
+import { useEffect, useRef } from "react";
 
 export interface BookingConfirmationData {
   booking: {
@@ -24,8 +25,22 @@ export function BookingConfirmation({
     .setZone(timezone)
     .toFormat("cccc, LLLL d, yyyy 'at' h:mm a");
 
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // The form that submitted this booking is unmounted on success, so move focus
+  // to the confirmation and let a screen reader announce it (role="status").
+  useEffect(() => {
+    panelRef.current?.focus();
+  }, []);
+
   return (
-    <div className="rounded-md border border-border bg-surface p-6 shadow-card">
+    <div
+      ref={panelRef}
+      role="status"
+      aria-live="polite"
+      tabIndex={-1}
+      className="rounded-md border border-border bg-surface p-6 shadow-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+    >
       <h2 className="text-[1.25rem] font-semibold">You&apos;re booked</h2>
       <p className="mt-2 text-fg">
         {data.booking.eventType.name} on <span className="tabular-nums">{when}</span>
