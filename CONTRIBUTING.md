@@ -12,7 +12,7 @@ By participating you agree to abide by the [Code of Conduct](./CODE_OF_CONDUCT.m
 - Docker, for the PostgreSQL 16 and Mailpit containers.
 
 The slot engine relies on the platform IANA timezone database via Luxon, and the concurrency
-guarantee relies on a PostgreSQL exclusion constraint, so the tests need a real Postgres 16 — an
+guarantee relies on a PostgreSQL exclusion constraint, so the tests need a real Postgres 16 - an
 in-memory or SQLite substitute will not exercise the behavior that matters.
 
 ## Local setup
@@ -42,7 +42,7 @@ If Docker Compose is unavailable, an equivalent `docker run` for `postgres:16` e
 with the `bookline`/`bookline`/`bookline` user/password/database works too; keep `DATABASE_URL` in
 `.env` pointed at whatever host port you publish.
 
-Mailpit captures all outgoing mail — open http://localhost:8025 to read confirmation, reminder, and
+Mailpit captures all outgoing mail - open http://localhost:8025 to read confirmation, reminder, and
 cancellation emails, including their `.ics` attachments.
 
 ## The checks a change must pass
@@ -60,7 +60,7 @@ npm run build            # next build (production)
 ```
 
 `npm run test:integration` must pass for any change touching bookings, availability writes, the ics
-pipeline, or reminders — that is where the database-enforced guarantees
+pipeline, or reminders - that is where the database-enforced guarantees
 (`simultaneous-booking-single-winner`, exclusion-constraint semantics, reminder idempotency) are
 verified. If the integration suite cannot find a database, start the compose stack first and re-run
 `npx prisma migrate deploy`.
@@ -73,7 +73,7 @@ Run it against the compose stack when you touch the end-to-end booking flow.
 
 These are enforced in review; `docs/rules.md` is the full contract.
 
-- **Dates and times** go through Luxon in `lib/slots/` and `lib/ics/` — never raw `Date`
+- **Dates and times** go through Luxon in `lib/slots/` and `lib/ics/` - never raw `Date`
   arithmetic, `getTimezoneOffset`, or string slicing. Timestamps are stored in UTC, availability
   rules live in the host's IANA zone, and rendering uses the visitor's zone.
 - **Database access** goes through Prisma (`lib/db.ts`). Every schema change is a new migration
@@ -95,10 +95,10 @@ These are enforced in review; `docs/rules.md` is the full contract.
 - Keep the PR focused on one change and describe what it does and why.
 - Fill in the pull request template, including which gates you ran.
 - Confirm `typecheck`, `lint`, `test`, `test:integration`, and `build` all pass locally.
-- Add or extend tests for behavior you change — the slot engine, ics writer, and the DB-enforced
+- Add or extend tests for behavior you change - the slot engine, ics writer, and the DB-enforced
   booking/reminder paths are the highest-value targets (`docs/testing.md`).
 - If a change alters the database schema, include the migration and note it in the PR.
-- Never modify `docs/PRD.md` or `docs/architecture.md` without flagging it — they are the contract.
+- Never modify `docs/PRD.md` or `docs/architecture.md` without flagging it - they are the contract.
 
-Security issues should be reported privately, not as a pull request or public issue — see
+Security issues should be reported privately, not as a pull request or public issue - see
 [SECURITY.md](./SECURITY.md).

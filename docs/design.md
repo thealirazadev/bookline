@@ -6,7 +6,7 @@ All components support light and dark themes and meet the accessibility rules at
 
 ## Principles
 
-- The visitor's decision — day, then time — is the loudest thing on the booking page. Everything
+- The visitor's decision - day, then time - is the loudest thing on the booking page. Everything
   else recedes.
 - Times are always labeled with their timezone. Never show a bare "9:00" without the active zone
   visible on screen.
@@ -129,9 +129,9 @@ import-destructive actions.
 
 ### Empty states
 Shared `EmptyState` component: short heading, one line of guidance, optional action. Required
-instances: no slots on a day ("No open times on this day — try another date"), month with no
+instances: no slots on a day ("No open times on this day - try another date"), month with no
 availability, dashboard with no upcoming bookings, no past bookings, no event types yet ("Create
-your first event type"), empty weekly rules ("You have no availability — visitors can't book").
+your first event type"), empty weekly rules ("You have no availability - visitors can't book").
 
 ### Error states
 Route error boundary: calm card, "Something went wrong", one retry button, no technical detail.

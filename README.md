@@ -16,8 +16,8 @@ Status: in development
 ## Screenshots
 
 The public booking page renders the host's availability in the visitor's own timezone. Here the
-host works 09:00–17:00 in Europe/Berlin; a visitor in that zone sees a 9-to-5 grid, and a visitor
-in America/New_York sees the identical availability shifted to 03:00–10:30.
+host works 09:00-17:00 in Europe/Berlin; a visitor in that zone sees a 9-to-5 grid, and a visitor
+in America/New_York sees the identical availability shifted to 03:00-10:30.
 
 | Public booking page (visitor in host's zone) | Same availability for a New York visitor |
 | --- | --- |
@@ -53,7 +53,7 @@ rationale lives in `docs/architecture.md` and `docs/memory.md`.
 - **All instants stored in UTC; availability rules stored in the host's IANA timezone.** Bookings
   are `timestamptz` in UTC; weekly rules, overrides, and blackouts are minutes-of-day integers
   interpreted in the host's zone and projected to UTC per date. Storing wall-clock times would make
-  every query DST-ambiguous; storing only UTC would lose the host's intent ("I work 9–5 local") the
+  every query DST-ambiguous; storing only UTC would lose the host's intent ("I work 9-5 local") the
   moment their offset changes. Keeping both, with UTC as the single source of truth, is what makes
   the slot math correct across transitions.
 - **Fall-back DST policy: the repeated hour is offered once, at the earlier offset.** When the clocks
@@ -67,10 +67,10 @@ rationale lives in `docs/architecture.md` and `docs/memory.md`.
   engine before inserting only to produce friendly errors; correctness under concurrency must never
   depend on that check winning a race. Rejected: application-level "is this slot free?" checking,
   which is a time-of-check/time-of-use bug under load. This is also why Postgres is required and
-  SQLite/MySQL are not an option — neither can express the constraint.
+  SQLite/MySQL are not an option - neither can express the constraint.
 - **A read-only iCal feed is the v1 calendar-interop story, not two-way OAuth sync.** Hosts subscribe
   an external calendar to a per-host, token-authed `text/calendar` feed. Rejected for v1: two-way
-  Google/Outlook OAuth calendar sync — far more integration surface, token lifecycle, and provider
+  Google/Outlook OAuth calendar sync - far more integration surface, token lifecycle, and provider
   coupling than a single-host tool needs. The feed delivers the "my bookings show up in my calendar"
   outcome with none of that.
 - **Luxon for all timezone math, over date-fns-tz and the Temporal polyfill.** Luxon uses the
@@ -92,7 +92,7 @@ rationale lives in `docs/architecture.md` and `docs/memory.md`.
   starts a 60-second loop that claims due reminders with a single atomic
   `UPDATE ... WHERE reminderSentAt IS NULL`, so a double fire is harmless. Trade-off: this assumes a
   single always-on process. A serverless or multi-instance deploy would instead hit
-  `npm run reminders:once` from an external cron — supported, and the documented path for that shape.
+  `npm run reminders:once` from an external cron - supported, and the documented path for that shape.
 
 ## Requirements
 
@@ -143,30 +143,30 @@ are only claims about this machine.
 Node 24.18.0, PostgreSQL 16.14 in Docker on the same host (local socket, default `fsync=on`
 settings). Figures are the **median of 4 runs**; `p50` is the within-run median latency and
 `ops/sec` is `1000/mean` as printed by the script. The machine was running other workloads during
-measurement (load average 5–6 across 12 threads), so treat these as a conservative floor rather
-than a best case — the slot figures in particular moved up to ~2x on the noisiest run.
+measurement (load average 5-6 across 12 threads), so treat these as a conservative floor rather
+than a best case - the slot figures in particular moved up to ~2x on the noisiest run.
 
 | Operation | p50 (ms) | ops/sec |
 | --- | --- | --- |
-| `daysForMonth` — UTC host, UTC visitor | 12.4 | 76 |
-| `daysForMonth` — New_York host, Berlin visitor | 50.0 | 19 |
-| `daysForMonth` — Tokyo host, Los_Angeles visitor | 54.3 | 18 |
-| `daysForMonth` — Chatham host, Kolkata visitor | 44.7 | 21 |
-| `slotsForDay` — New_York host, Berlin visitor | 3.8 | 228 |
-| `generateSlots` — 365 host dates in one call, New_York | 466.6 | 2.1 |
+| `daysForMonth` - UTC host, UTC visitor | 12.4 | 76 |
+| `daysForMonth` - New_York host, Berlin visitor | 50.0 | 19 |
+| `daysForMonth` - Tokyo host, Los_Angeles visitor | 54.3 | 18 |
+| `daysForMonth` - Chatham host, Kolkata visitor | 44.7 | 21 |
+| `slotsForDay` - New_York host, Berlin visitor | 3.8 | 228 |
+| `generateSlots` - 365 host dates in one call, New_York | 466.6 | 2.1 |
 | Booking insert transaction (500 sequential, constraint active) | 2.7 | 331 |
 
-Reading these: slot generation is dominated by Luxon timezone conversion, not by the rule logic —
+Reading these: slot generation is dominated by Luxon timezone conversion, not by the rule logic -
 an all-UTC month is ~4x cheaper than any real IANA host/visitor pair, and the pair's specific
 offsets barely matter (a 45-minute-offset zone like Pacific/Chatham costs about the same as
 Berlin). The endpoints the app actually serves are month- and day-scoped, so they sit at ~50 ms and
 ~4 ms; the 365-day figure is a deliberate stress case showing the cost scales linearly (~1.3 ms per
 host date) if a range query is ever exposed. On the database side, each booking is one transaction
-whose commit is checked by the `booking_no_overlap` exclusion constraint, at ~2.7 ms p50 —
+whose commit is checked by the `booking_no_overlap` exclusion constraint, at ~2.7 ms p50 -
 sequential on a single connection, so it is a latency floor, not a saturation number.
 
 Event-type config for the slot runs: 30-minute duration, 10-minute buffers each side, 120-minute
-minimum notice, Mon–Fri 09:00–17:00 in the host's zone.
+minimum notice, Mon-Fri 09:00-17:00 in the host's zone.
 
 ## Test
 

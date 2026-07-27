@@ -10,11 +10,11 @@ Phase 2 flow), RFC 5545 calendar interop (Phase 1 writer, Phase 2 delivery + fee
 
 ---
 
-## Phase 1 — Scaffold, database, slot engine, ics writer
+## Phase 1 - Scaffold, database, slot engine, ics writer
 
 Goal: a running Next.js app wired to Postgres with the full schema (including the exclusion
-constraint), a seeded host, and the two core libraries — the timezone slot engine and the RFC 5545
-writer — complete and heavily unit-tested as pure code. No booking UI yet.
+constraint), a seeded host, and the two core libraries - the timezone slot engine and the RFC 5545
+writer - complete and heavily unit-tested as pure code. No booking UI yet.
 
 ### Definition of done
 - Next.js 15 App Router + TypeScript + Tailwind boots with `npm run dev`; ESLint + Prettier clean;
@@ -35,16 +35,16 @@ writer — complete and heavily unit-tested as pure code. No booking UI yet.
   ranges -> second insert fails with Postgres `23P01`; a cancelled row does not conflict.
 
 ### Named required test cases (must exist with these names)
-- `dst-spring-forward-skipped-hour` — host America/New_York, rule 01:00–04:00 on Sunday
-  2026-03-08, 60-min event: local 02:00–02:59 does not exist; exactly the 01:00 and 03:00 starts
+- `dst-spring-forward-skipped-hour` - host America/New_York, rule 01:00-04:00 on Sunday
+  2026-03-08, 60-min event: local 02:00-02:59 does not exist; exactly the 01:00 and 03:00 starts
   are produced; every returned UTC instant round-trips to a real wall time.
-- `dst-fall-back-repeated-hour` — host America/New_York, rule 00:30–03:30 on Sunday 2026-11-01,
-  30-min event: wall times 01:00–01:59 occur twice; each wall time yields exactly one slot (earlier
+- `dst-fall-back-repeated-hour` - host America/New_York, rule 00:30-03:30 on Sunday 2026-11-01,
+  30-min event: wall times 01:00-01:59 occur twice; each wall time yields exactly one slot (earlier
   offset); no duplicate UTC instants; six slots total (00:30 through 03:00).
-- `dst-mismatched-transition-windows` — host Europe/Berlin, rule Tuesday 09:00–12:00, visitor
+- `dst-mismatched-transition-windows` - host Europe/Berlin, rule Tuesday 09:00-12:00, visitor
   America/Los_Angeles, date 2026-03-17 (US already on DST, Europe not): visitor-rendered times
   shift by the 8-hour offset, not the usual 9.
-- `midnight-crossing-window` — host Asia/Karachi, rule Friday 22:00–02:00, 60-min event: starts at
+- `midnight-crossing-window` - host Asia/Karachi, rule Friday 22:00-02:00, 60-min event: starts at
   22:00, 23:00, 00:00, 01:00, the last two on Saturday local, all attributed to Friday's window,
   and correctly bucketed for a visitor whose local date differs.
 
@@ -81,10 +81,10 @@ writer — complete and heavily unit-tested as pure code. No booking UI yet.
 
 ---
 
-## Phase 2 — Public booking flow, emails, manage links, feed
+## Phase 2 - Public booking flow, emails, manage links, feed
 
-Goal: a visitor can book end to end — pick a day and slot in their timezone, submit, receive a
-confirmation email with a valid invite, cancel or reschedule via the signed link — and an external
+Goal: a visitor can book end to end - pick a day and slot in their timezone, submit, receive a
+confirmation email with a valid invite, cancel or reschedule via the signed link - and an external
 calendar can subscribe to the feed. All three differentiators are fully live at the end of this
 phase.
 
@@ -145,7 +145,7 @@ phase.
 
 ---
 
-## Phase 3 — Host auth and dashboard
+## Phase 3 - Host auth and dashboard
 
 Goal: the host signs in and sees their bookings; host-side cancel works.
 
@@ -185,7 +185,7 @@ Goal: the host signs in and sees their bookings; host-side cancel works.
 
 ---
 
-## Phase 4 — Event type CRUD and availability editor
+## Phase 4 - Event type CRUD and availability editor
 
 Goal: the host manages event types and availability entirely from the dashboard; the public page
 reflects changes immediately.
@@ -205,7 +205,7 @@ reflects changes immediately.
 - Create an event type -> it appears on `/book`; deactivate it -> gone publicly, still in the
   dashboard with its bookings.
 - Enter duration 0, negative buffer, duplicate slug -> inline field errors, nothing saved.
-- Add a Friday 22:00–02:00 window -> saved; `/book` shows slots past midnight (verify against the
+- Add a Friday 22:00-02:00 window -> saved; `/book` shows slots past midnight (verify against the
   `midnight-crossing-window` expectations).
 - Add overlapping windows on one weekday -> rejected with a message naming the conflict.
 - Add an override for a date -> that date shows exactly the override windows; delete the override
@@ -213,7 +213,7 @@ reflects changes immediately.
 
 ### Verification
 - Build, lint, tests pass.
-- Unhappy paths: submitting the weekly editor with an empty rule set (allowed — host is simply
+- Unhappy paths: submitting the weekly editor with an empty rule set (allowed - host is simply
   unbookable; public page shows a "no open times" state), malformed date strings (400), an
   override on a blacked-out date (blackout wins, editor says so), very long event type
   name/description (clamped in UI, stored fine).
@@ -227,7 +227,7 @@ reflects changes immediately.
 
 ---
 
-## Phase 5 — Reminders, polish, end-to-end
+## Phase 5 - Reminders, polish, end-to-end
 
 Goal: reminder emails fire exactly once, the UI meets the design and accessibility bar, and a
 Playwright smoke test guards the booking flow.
@@ -255,7 +255,7 @@ Playwright smoke test guards the booking flow.
 ### Verification
 - `npm run build`, `npm run lint`, `npm run test`, `npm run test:integration`,
   `npm run test:e2e` all pass.
-- Unhappy paths: reminder job with SMTP down (claim released or retried next tick — pick one,
+- Unhappy paths: reminder job with SMTP down (claim released or retried next tick - pick one,
   document in memory.md), booking exactly at the lead boundary (single send), long cancel reason
   (stored, clamped in dashboard).
 - `docs/launch-checklist.md` items that are verifiable now get ticked with notes.
@@ -270,7 +270,7 @@ Playwright smoke test guards the booking flow.
 
 ---
 
-## Phase 6 — Custom intake questions (v2)
+## Phase 6 - Custom intake questions (v2)
 
 Goal: a host can attach custom questions to an event type; the public booking form collects the
 answers after the name/email step, validates them server-side, stores them with the booking, and
@@ -301,12 +301,12 @@ answer text to an event's DESCRIPTION.
   answers. Reschedule/cancel invites are unchanged.
 
 ### Named required test cases (must exist with these names)
-- `intake-required-answer-missing-rejected` — a required question with no answer -> 400 with an
+- `intake-required-answer-missing-rejected` - a required question with no answer -> 400 with an
   `answers.<id>` field error; no booking row created.
-- `intake-invalid-choice-rejected` — a single-choice answer not in the option list -> 400; no row.
-- `intake-answers-persisted-and-loaded` — valid answers create the booking and are readable back in
+- `intake-invalid-choice-rejected` - a single-choice answer not in the option list -> 400; no row.
+- `intake-answers-persisted-and-loaded` - valid answers create the booking and are readable back in
   `order` with their snapshotted labels via the dashboard detail query.
-- `intake-answers-in-generated-ics` — the invite produced by the create flow carries each answer
+- `intake-answers-in-generated-ics` - the invite produced by the create flow carries each answer
   in its DESCRIPTION.
 
 ### Manual test checklist

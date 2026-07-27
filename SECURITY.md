@@ -13,7 +13,7 @@ Fixes land on `main`; there is no separate backport branch.
 ## Supported versions
 
 This is a self-hosted single-host application with no released version line. Only the current
-`main` branch is supported — deploy from it and keep dependencies current.
+`main` branch is supported - deploy from it and keep dependencies current.
 
 ## Security model
 
@@ -21,7 +21,7 @@ Knowing what is and is not a boundary makes reports easier to triage.
 
 - **Manage links are bearer tokens.** `/manage/<token>` uses a stateless
   `base64url(bookingId).HMAC-SHA256(bookingId, LINK_TOKEN_SECRET)` value, compared in constant time
-  and bound to one booking id — a token for one booking cannot act on another. Anyone holding the
+  and bound to one booking id - a token for one booking cannot act on another. Anyone holding the
   link can view, reschedule, or cancel that booking, which is deliberate: invitees have no accounts.
   Actionability is derived from live state, so a cancelled or already-started booking cannot be
   changed even with a valid token. Treat the emailed link as a secret.

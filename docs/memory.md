@@ -5,9 +5,9 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
 
 ## Completed
 
-- 2026-07-18 — Planning documentation created (README, PRD, architecture, rules, phases, design,
+- 2026-07-18 - Planning documentation created (README, PRD, architecture, rules, phases, design,
   testing, api-contracts, launch-checklist, .env.example). Awaiting owner review; no code yet.
-- 2026-07-18 — Phase 1 complete. Next.js 15 App Router + TS + Tailwind scaffold; ESLint/Prettier;
+- 2026-07-18 - Phase 1 complete. Next.js 15 App Router + TS + Tailwind scaffold; ESLint/Prettier;
   Vitest (unit/integration projects) and Playwright config; docker-compose (Postgres 16 + Mailpit);
   validated server-only env (`lib/env.ts`); structured logger + single-format error helper; Prisma
   schema + initial migration carrying `btree_gist` and the `booking_no_overlap` exclusion constraint
@@ -18,7 +18,7 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   touching ranges, and frees cancelled slots. Verified: build, lint, typecheck, 21 unit + 4
   integration tests all pass.
 
-- 2026-07-18 — Phase 2 complete. Public read endpoints (`/api/availability`, `/api/slots`) and the
+- 2026-07-18 - Phase 2 complete. Public read endpoints (`/api/availability`, `/api/slots`) and the
   booking flow: `/book` list, `/book/[slug]` picker (month grid, slot list, timezone select, form),
   `POST /api/bookings` re-validating against the engine and inserting inside a transaction where the
   exclusion constraint is authority (23P01 -> 409 SLOT_TAKEN with refreshedSlots; rule failures ->
@@ -31,7 +31,7 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   reschedule, and feed all exercised via curl + Mailpit; CANCEL/REQUEST .ics inspected for correct
   METHOD/UID/SEQUENCE.
 
-- 2026-07-18 — Phase 3 complete. Auth.js v5 credentials login against the seeded host (bcrypt),
+- 2026-07-18 - Phase 3 complete. Auth.js v5 credentials login against the seeded host (bcrypt),
   split config (edge-safe `lib/auth.config.ts` for the middleware, node credentials in `lib/auth.ts`
   delegating to `lib/host-credentials.ts`). `middleware.ts` guards `/dashboard*` (redirect) and
   `/api/event-types*` + `/api/host/*` (401 JSON). Dashboard shell with nav + sign out; bookings
@@ -41,7 +41,7 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   integration pass; manual curl confirmed 401/redirect guard, login (wrong vs right), host cancel
   (401/200/410/404), and settings render.
 
-- 2026-07-18 — Phase 4 complete. Event type CRUD (`/api/event-types` + `/[id]`): create/list/patch/
+- 2026-07-18 - Phase 4 complete. Event type CRUD (`/api/event-types` + `/[id]`): create/list/patch/
   delete with Zod validation, duplicate-slug 400, delete-with-bookings 409 (via an ApiError status
   override), dashboard list + create/edit forms. Availability: weekly rules GET/PUT (atomic replace,
   overlap rejection incl. midnight-crossing via extended-interval intersection) + per-weekday editor;
@@ -50,7 +50,7 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   weekly window and a blackout zeroing a day via `/api/slots`. Verified: build, lint, typecheck, 42
   unit + 14 integration pass.
 
-- 2026-07-18 — Phase 5 complete. Reminder job (`jobs/reminders.ts`) claims due bookings with a
+- 2026-07-18 - Phase 5 complete. Reminder job (`jobs/reminders.ts`) claims due bookings with a
   single atomic `UPDATE ... WHERE reminderSentAt IS NULL` joined to the event type's lead, sends
   one invitee reminder each in their timezone, and runs every 60s via `instrumentation.ts`;
   `npm run reminders:once` for external cron. Idempotency proven by a concurrent-run integration
@@ -61,13 +61,13 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   cancel -> slot frees, all passing. Launch checklist updated. Final verification: build, lint,
   typecheck, 45 unit, 17 integration, 1 e2e all pass.
 
-- 2026-07-22 — Repo hygiene: added `LICENSE` (MIT, Ali Raza) at the root and
+- 2026-07-22 - Repo hygiene: added `LICENSE` (MIT, Ali Raza) at the root and
   `.github/workflows/ci.yml`. CI runs on push and pull_request to `main` against Node 24 with a
   `postgres:16` service container, applies `prisma migrate deploy` (which creates `btree_gist` and
   the `booking_no_overlap` exclusion constraint), then runs typecheck, lint, `npm run test`, and
   `npm run test:integration` before the build.
 
-- 2026-07-22 — Senior quality pass. Code review of the slot engine, reschedule/exclusion path,
+- 2026-07-22 - Senior quality pass. Code review of the slot engine, reschedule/exclusion path,
   manage tokens, .ics writer, iCal feed, and reminder scheduler found one real defect: a
   `durationMin` of 0 or less made `windowStarts` step by <= 0 and loop forever, hanging every
   caller. Fixed with a guard in `generateSlots` plus a regression test that hangs without it.
@@ -76,7 +76,7 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   design-decisions section, `scripts/benchmark.ts` (`npm run bench`) with measured numbers in the
   README, `SECURITY.md`, and a grouped monthly `.github/dependabot.yml`.
 
-- 2026-07-23 — Concurrency hardening + coverage pass. Fixed a read-then-update race the prior
+- 2026-07-23 - Concurrency hardening + coverage pass. Fixed a read-then-update race the prior
   review flagged: `rescheduleBooking`/`cancelBooking` read status then updated by id alone, so a
   cancel committing in between let a reschedule move (and re-invite) a now-cancelled booking, and
   let two cancels both fire. Both transitions are now guarded updates predicated on the row still
@@ -86,7 +86,7 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   committed cancel inside the caller's own status read (module-mocked `loadBookingContext`); both
   fail against the pre-fix code. Added coverage: five slot-engine tests (visitor-timezone
   fall-back 25 / spring-forward 23 / normal 24 hourly slots, min-notice cutoff inclusivity,
-  host-local-day horizon boundary, asymmetric before/after buffers on both sides) — no engine bug
+  host-local-day horizon boundary, asymmetric before/after buffers on both sides) - no engine bug
   found; four `buildInviteIcs` unit tests (REQUEST/CANCEL status, stable UID across a
   reschedule series, multi-byte SUMMARY folding); an ics-pipeline integration test asserting the
   emitted .ics carries SEQUENCE 0->1->2->3 with one stable UID and METHOD flipping to CANCEL across
@@ -95,7 +95,7 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   build; `prisma migrate deploy` re-applied to a fresh Postgres 16 database with `btree_gist` and
   `booking_no_overlap` confirmed present.
 
-- 2026-07-27 — Phase 6 complete (v2 feature: custom intake questions). New migration
+- 2026-07-27 - Phase 6 complete (v2 feature: custom intake questions). New migration
   `add_intake_questions` adds `IntakeQuestion` (per event type: label, type, required, order,
   options text[]) and `IntakeAnswer` (per booking: snapshot label/order, value, nullable questionId
   ON DELETE SET NULL), plus a raw-SQL `intake_question_type_check` mirroring `booking_status_check`;
@@ -122,51 +122,51 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
 
 ## Decisions log
 
-- 2026-07-18 — Postgres exclusion constraint (`btree_gist`, `tstzrange` on the buffered block
+- 2026-07-18 - Postgres exclusion constraint (`btree_gist`, `tstzrange` on the buffered block
   range, confirmed rows only) is the double-booking authority; the application pre-check exists
   only for friendly errors. Reason: correctness under concurrency must not depend on application
   code.
-- 2026-07-18 — Luxon over date-fns-tz and the Temporal polyfill for all timezone math. Reason:
+- 2026-07-18 - Luxon over date-fns-tz and the Temporal polyfill for all timezone math. Reason:
   mature, platform IANA data, documented DST semantics the engine's skip/earlier-offset policy is
   built on. Dependency awaits owner approval.
-- 2026-07-18 — .ics generation is hand-rolled (no `ics` package). Reason: METHOD/UID/SEQUENCE
+- 2026-07-18 - .ics generation is hand-rolled (no `ics` package). Reason: METHOD/UID/SEQUENCE
   control is a differentiator and the needed RFC 5545 subset is ~100 testable lines.
-- 2026-07-18 — Manage links are stateless HMAC tokens (bookingId-bound, validity derived from
+- 2026-07-18 - Manage links are stateless HMAC tokens (bookingId-bound, validity derived from
   booking status), not stored tokens. Reason: nothing to persist, rotate, or expire separately.
-- 2026-07-18 — Reminders run on an in-process 60s interval via `instrumentation.ts` with an
+- 2026-07-18 - Reminders run on an in-process 60s interval via `instrumentation.ts` with an
   atomic claim column. Reason: simplest infrastructure for a single-instance deploy; external
   cron via `reminders:once` is the documented serverless fallback.
-- 2026-07-18 — Local dev Postgres is published on host port 5433 (not 5432) because an unrelated
+- 2026-07-18 - Local dev Postgres is published on host port 5433 (not 5432) because an unrelated
   container already owns 5432 on this machine. The committed `docker-compose.yml` and
   `.env.example` keep the standard 5432; the gitignored local `.env` uses 5433. The Docker Compose
   plugin is absent here, so the containers are launched with `docker run` mirroring the compose
-  file. Neither is a project change — both are environment workarounds.
-- 2026-07-18 — Slot-conflict detection lives in `lib/bookings/conflict.ts` and matches both the
+  file. Neither is a project change - both are environment workarounds.
+- 2026-07-18 - Slot-conflict detection lives in `lib/bookings/conflict.ts` and matches both the
   typed-client error (message carries `23P01`/`booking_no_overlap`) and any raw path (P2010 with
   `meta.code = 23P01`). Reason: `prisma.booking.create` surfaces the exclusion violation only as an
   unknown-request error message, so a message check is required alongside the structured code.
-- 2026-07-18 — Booking re-validation runs the engine with `blocks: []` (availability rules only), so
+- 2026-07-18 - Booking re-validation runs the engine with `blocks: []` (availability rules only), so
   a slot already taken by another booking still reaches the insert and surfaces as 409 SLOT_TAKEN
   (constraint authority) rather than being misreported as a 422 rule failure. 422 is reserved for
   genuine rule violations (notice, horizon, outside windows).
-- 2026-07-18 — React 19 lets function components take `ref` as a plain prop; `Button` and `Input`
+- 2026-07-18 - React 19 lets function components take `ref` as a plain prop; `Button` and `Input`
   accept and forward it rather than using `forwardRef`.
-- 2026-07-18 — Auth.js v5 needs `trustHost: true` for the self-hosted `next start` deploy (no Vercel
+- 2026-07-18 - Auth.js v5 needs `trustHost: true` for the self-hosted `next start` deploy (no Vercel
   host header), else every `/api/auth/*` call fails with UntrustedHost. Set in `lib/auth.config.ts`.
-- 2026-07-18 — `next-auth@5.0.0-beta.31` pulls `@auth/core` whose optional Email-provider peer wants
+- 2026-07-18 - `next-auth@5.0.0-beta.31` pulls `@auth/core` whose optional Email-provider peer wants
   nodemailer 7; we keep the documented nodemailer 6 (own mailer, not Auth's Email provider). Added
   `.npmrc` `legacy-peer-deps=true` so the documented stack installs reproducibly.
-- 2026-07-18 — Reminder SMTP-down policy: claim first (set reminderSentAt), then send; if the send
+- 2026-07-18 - Reminder SMTP-down policy: claim first (set reminderSentAt), then send; if the send
   fails, reset reminderSentAt to NULL so the next 60s tick retries. Chosen over dropping the
   reminder so a transient outage still delivers. Claim-before-send keeps a double-fire harmless.
-- 2026-07-18 — `@testing-library/react@16` needs `@testing-library/dom` as an explicit peer; added
+- 2026-07-18 - `@testing-library/react@16` needs `@testing-library/dom` as an explicit peer; added
   it (10.4.1) as a dev dependency. Component tests set jsdom via a `// @vitest-environment jsdom`
   docblock and call `afterEach(cleanup)` (no vitest globals, so RTL auto-cleanup is not registered).
-- 2026-07-22 — The slot engine guards `durationMin <= 0` itself rather than relying on
+- 2026-07-22 - The slot engine guards `durationMin <= 0` itself rather than relying on
   `eventTypeCreateSchema.positive()`. Reason: the engine is a pure function with its own public
   surface, and the failure mode is an unrecoverable infinite loop (a hung request), not a wrong
   answer. Cheap guard, catastrophic failure avoided.
-- 2026-07-22 — Review conclusions on areas that turned out sound, recorded so they are not
+- 2026-07-22 - Review conclusions on areas that turned out sound, recorded so they are not
   re-litigated: visitor-timezone DST bucketing is instant-based, so a 23-hour spring-forward
   visitor day yields 23 slots and a 25-hour fall-back day yields 25 unique instants; minimum-notice
   and max-days-ahead boundaries are inclusive on both the engine and re-validation side because
@@ -177,7 +177,7 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   points so folding never splits a multi-byte character (verified with 4-byte astral emoji); the
   feed token is 256-bit random with a bare 404 on miss; and the reminder claim is a single atomic
   UPDATE, so a process restart loses a reminder rather than duplicating one.
-- 2026-07-23 — Reschedule/cancel state transitions are made atomic with a guarded `update` whose
+- 2026-07-23 - Reschedule/cancel state transitions are made atomic with a guarded `update` whose
   `where` re-states the status/time read earlier, not with `updateMany` + a refetch. Reason: the
   guarded `update` is a single `UPDATE ... WHERE id = ? AND status = 'confirmed' AND startUtc > ?`
   that returns the row for the invite email; under READ COMMITTED, Postgres re-evaluates the WHERE
@@ -186,17 +186,17 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   racy read. Extended-where on `update` is GA in Prisma 6, so no preview flag is needed. This
   refines the 2026-07-22 review note that called the reschedule path sound: it was sound against the
   exclusion constraint and overlaps, but not against a concurrent status change, which this fixes.
-- 2026-07-22 — Benchmarks are committed as a script (`scripts/benchmark.ts`) rather than prose
+- 2026-07-22 - Benchmarks are committed as a script (`scripts/benchmark.ts`) rather than prose
   numbers, and the README states the hardware and the concurrent load the figures were taken under.
   Reason: a performance claim nobody can reproduce is not a claim. Slot generation is dominated by
   Luxon zone conversion (all-UTC is ~4x cheaper than any real IANA pair), not by rule evaluation.
-- 2026-07-22 — CI omits `npm run test:e2e`. Playwright needs a browser download plus a booted
+- 2026-07-22 - CI omits `npm run test:e2e`. Playwright needs a browser download plus a booted
   `next start` and a live Mailpit inbox to assert against, which is slow and flaky on a runner;
   it stays a local check against the compose stack. CI also runs without an SMTP server: `sendMail`
   logs and returns false instead of throwing, so the DB-backed suites take the EMAIL_PENDING path
   and still pass. Verified locally by pointing SMTP at a dead port and by replaying
   `prisma migrate deploy` onto a fresh database before running the integration suite.
-- 2026-07-22 — Dependency security pass. Ten open Dependabot alerts (3 high, 6 medium, 1 low) closed;
+- 2026-07-22 - Dependency security pass. Ten open Dependabot alerts (3 high, 6 medium, 1 low) closed;
   `npm audit` now reports 0. Nodemailer went 6.10.1 -> 9.0.3: eight of the ten alerts were nodemailer,
   and the highest (GHSA-p6gq-j5cr-w38f, raw-option file/URL access bypass) is only fixed in 9.0.1, so
   the 8.x line was not enough. `lib/email/mailer.ts` is the only consumer and needed no change --
@@ -205,25 +205,25 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   not apply to an SMTP transport that passes attachment bodies inline. Verified by sending a real
   message with an .ics attachment through Mailpit. `docs/architecture.md` was updated from
   "Nodemailer 6" to 9 to match.
-- 2026-07-22 — Supersedes the 2026-07-18 `.npmrc` note: `legacy-peer-deps=true` is gone. `@auth/core`
+- 2026-07-22 - Supersedes the 2026-07-18 `.npmrc` note: `legacy-peer-deps=true` is gone. `@auth/core`
   still caps its optional Email-provider peer at nodemailer 8, so 9.x conflicts, but the project does
   not use that provider (credentials only, own mailer). Replaced the repo-wide flag with a scoped
   `overrides: { "next-auth": { "nodemailer": "$nodemailer" } }`, which states the one deliberate
   deviation instead of switching peer checking off everywhere. `npm ci` resolves clean without the
   flag; the CI comment that referenced `.npmrc` was updated.
-- 2026-07-27 — Intake answers snapshot the question's `label` and `order` onto `IntakeAnswer` and
+- 2026-07-27 - Intake answers snapshot the question's `label` and `order` onto `IntakeAnswer` and
   keep a nullable `questionId` (`ON DELETE SET NULL`), rather than rendering answers by joining to
   the live `IntakeQuestion`. Reason: a booking is a historical record; if the host later edits or
   removes a question, the answer already collected must still read exactly as the invitee gave it.
   Joining to current questions would silently rewrite or drop that history. Editing an event type's
   questions is therefore a delete-all + recreate inside a transaction (same pattern as the weekly
   rules editor); the SET NULL keeps prior answers intact through it.
-- 2026-07-27 — Per-answer validation (required, single-choice membership, per-type length caps)
+- 2026-07-27 - Per-answer validation (required, single-choice membership, per-type length caps)
   runs in `createBooking` against the event type's loaded questions, not as a static Zod schema, and
   throws a 400 with `answers.<questionId>` field keys. Reason: the rules depend on the event type's
   questions, which are only known at request time. The wire schema keeps a blunt ceiling
   (`z.record(string, string().max(2000))`) as a safety net; the per-question check is the authority.
-- 2026-07-22 — postcss and sharp are fixed with `overrides` under `next`, not by upgrading Next.
+- 2026-07-22 - postcss and sharp are fixed with `overrides` under `next`, not by upgrading Next.
   Reason: Next pins `postcss` to exactly 8.4.31 and `sharp` to `^0.34.x` in every published release
   including 16.2.11, so no Next upgrade clears either advisory; only an override does. postcss is
   forced to 8.5.21 (the direct devDependency was pinned to the same version so the tree dedupes to

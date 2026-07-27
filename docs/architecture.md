@@ -27,7 +27,7 @@
 ### Manage (cancel / reschedule)
 
 6. Confirmation and reminder emails link to `/manage/[token]`. The token is
-   `base64url(bookingId) + "." + HMAC-SHA256(bookingId, LINK_TOKEN_SECRET)` — stateless, no
+   `base64url(bookingId) + "." + HMAC-SHA256(bookingId, LINK_TOKEN_SECRET)` - stateless, no
    expiry column; validity is derived from booking status and start time.
 7. Cancel: `POST /api/manage/[token]/cancel` sets status to `cancelled`, frees the slot (the
    exclusion constraint only covers confirmed rows), increments SEQUENCE, and emails both sides a
@@ -43,7 +43,7 @@
 10. Dashboard pages are server components that read via `lib/queries/` (Prisma) directly; all
     mutations (event type CRUD, availability, host cancel) go through the JSON routes in
     `docs/api-contracts.md` so every write shares one validated, documented surface.
-11. External calendars subscribe to `GET /api/ical/[feedToken]` — a text/calendar feed of the
+11. External calendars subscribe to `GET /api/ical/[feedToken]` - a text/calendar feed of the
     host's confirmed bookings, token stored on the host row.
 
 ### Reminders
@@ -53,7 +53,7 @@
     `UPDATE ... WHERE reminder_sent_at IS NULL`-style write, then sends one reminder email per
     claimed booking. Claim-before-send makes a double-fire harmless. Trade-off: this assumes one
     long-running server process; a serverless deploy would need an external cron hitting a
-    protected route instead — documented, out of scope for v1.
+    protected route instead - documented, out of scope for v1.
 
 ```
 Visitor browser                         Host browser
@@ -172,43 +172,43 @@ bookline/
 Major versions listed now; exact versions are pinned at install time and `package-lock.json` is
 committed. Every runtime dependency below is proposed and needs owner approval before install.
 
-- **Next.js 15 (App Router) + TypeScript 5 + React 19** — matches the conventions of the sibling
+- **Next.js 15 (App Router) + TypeScript 5 + React 19** - matches the conventions of the sibling
   projects (`woo-headless`). Server components keep slot generation, secrets, and Prisma on the
   server; route handlers give a documentable JSON API for the booking flow.
-- **PostgreSQL 16 + Prisma 6** — Postgres is required, not incidental: the double-booking guarantee
+- **PostgreSQL 16 + Prisma 6** - Postgres is required, not incidental: the double-booking guarantee
   is a `tstzrange` **exclusion constraint** (`btree_gist`), which SQLite/MySQL cannot express.
   Prisma provides typed queries and a migration workflow; the exclusion constraint and extension
   are added as raw SQL inside a normal Prisma migration file (Prisma's schema DSL cannot declare
   them, the migration system carries them fine).
-- **Luxon 3** — the date library for all timezone math. Chosen over date-fns-tz (clunkier API for
+- **Luxon 3** - the date library for all timezone math. Chosen over date-fns-tz (clunkier API for
   wall-time -> instant projection) and the Temporal polyfill (Temporal's disambiguation control is
   attractive but the polyfill is heavy and Temporal is not yet boring). Luxon uses the platform's
   Intl IANA data (no bundled tz database), is immutable, and has documented DST semantics the
   engine builds its policy on: nonexistent local times are detectably shifted (skip policy below),
   ambiguous local times resolve to the earlier offset.
-- **Auth.js (next-auth) 5, credentials provider** — boring, audited session handling (CSRF, cookie
+- **Auth.js (next-auth) 5, credentials provider** - boring, audited session handling (CSRF, cookie
   flags, JWT session) for a single seeded host account; hand-rolling sessions saves one dependency
   but re-implements exactly the code most likely to be wrong. Password hashed with **bcryptjs 3**
   (pure JS, no native build step).
-- **Zod 3** — one validation layer for every route handler body/query; schemas double as the
+- **Zod 3** - one validation layer for every route handler body/query; schemas double as the
   source of the field-level error messages in `docs/api-contracts.md`.
-- **Nodemailer 9 + SMTP** — plain SMTP keeps the project provider-agnostic. Dev mailbox is
+- **Nodemailer 9 + SMTP** - plain SMTP keeps the project provider-agnostic. Dev mailbox is
   **Mailpit** via `docker-compose.yml` (SMTP on 1025, web UI on 8025) so email flows are testable
   locally with zero external accounts. Was pinned to 6 at design time; moved to 9 on 2026-07-22
   because the 6.x and 7.x lines carry unpatched advisories and only 9.0.1+ clears all of them.
   `lib/email/mailer.ts` needed no change: the 7/8/9 breaks are the SES SDK swap, the `NoAuth` →
   `ENOAUTH` error-code rename, and default TLS verification when fetching remote attachment content,
   none of which this SMTP-only, inline-attachment mailer touches.
-- **Hand-rolled .ics writer (no dependency)** — RFC 5545 output is a differentiator here: METHOD,
+- **Hand-rolled .ics writer (no dependency)** - RFC 5545 output is a differentiator here: METHOD,
   stable UID, SEQUENCE, and CANCEL handling must be exactly right, and the popular `ics` package
   gets METHOD/SEQUENCE control wrong or awkward. The needed subset (VCALENDAR, VEVENT, TZID-free
   UTC times, 75-octet folding, text escaping, CRLF) is ~100 lines and fully unit-testable.
-- **Tailwind CSS 3.4** — matches sibling projects; tokens from `docs/design.md` live in
+- **Tailwind CSS 3.4** - matches sibling projects; tokens from `docs/design.md` live in
   `tailwind.config.ts`.
-- **Vitest 3 + Testing Library, Playwright 1.x** — Vitest for the engine/ics/unit and component
+- **Vitest 3 + Testing Library, Playwright 1.x** - Vitest for the engine/ics/unit and component
   layers, one Playwright smoke test for the booking flow. Integration tests (concurrency,
   reminders) run against the Docker Postgres.
-- **ESLint + Prettier** — as in sibling projects.
+- **ESLint + Prettier** - as in sibling projects.
 
 ## Data model
 
@@ -221,7 +221,7 @@ Host {
   email         String   @unique
   passwordHash  String
   name          String
-  timezone      String            // IANA, e.g. "Europe/Berlin" — validated against Intl
+  timezone      String            // IANA, e.g. "Europe/Berlin" - validated against Intl
   feedToken     String   @unique  // random 32-byte hex; iCal feed auth
   createdAt / updatedAt
 }
@@ -341,7 +341,7 @@ Notes:
 
 ## The slot engine (`lib/slots/`)
 
-The one algorithm the whole product hangs on. Pure functions; no I/O — callers pass rules,
+The one algorithm the whole product hangs on. Pure functions; no I/O - callers pass rules,
 overrides, blackouts, and existing block ranges in.
 
 Inputs: event type (duration, buffers, notice, horizon), host timezone, visitor timezone, the
@@ -370,20 +370,20 @@ block ranges, and `now`.
    confirmed block range.
 5. **Bucket by visitor-local date** and return slots as UTC ISO instants; the client formats them.
 
-Booking re-runs steps 2–4 for the submitted instant inside the transaction (friendly validation),
+Booking re-runs steps 2-4 for the submitted instant inside the transaction (friendly validation),
 and the exclusion constraint remains the authority under concurrency.
 
 ## Where state lives
 
-- **PostgreSQL** — the single source of truth: host, event types, availability, bookings, reminder
+- **PostgreSQL** - the single source of truth: host, event types, availability, bookings, reminder
   claims, ics sequence numbers. Every schema change is a Prisma migration; applied migrations are
   never edited.
-- **Server, per request** — slot generation output; never cached across requests (correctness over
-  caching for v1 — availability must reflect bookings instantly).
-- **Session cookie** — Auth.js JWT for the host; no server session table.
-- **Client, ephemeral only** — selected month/day/slot, chosen timezone override, form fields,
+- **Server, per request** - slot generation output; never cached across requests (correctness over
+  caching for v1 - availability must reflect bookings instantly).
+- **Session cookie** - Auth.js JWT for the host; no server session table.
+- **Client, ephemeral only** - selected month/day/slot, chosen timezone override, form fields,
   toast state. Plain React state; no client state library and nothing persisted in the browser.
-- **Emails/tokens** — manage tokens are stateless HMAC values; nothing stored beyond the booking
+- **Emails/tokens** - manage tokens are stateless HMAC values; nothing stored beyond the booking
   row itself.
 
 ## External dependencies

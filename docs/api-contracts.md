@@ -7,9 +7,9 @@ display. Timezone parameters are IANA names and are validated server-side.
 
 Auth levels:
 
-- **public** — no auth.
-- **token** — a signed manage token or the iCal feed token in the path.
-- **host** — Auth.js session cookie required; unauthenticated requests get `401 UNAUTHORIZED`.
+- **public** - no auth.
+- **token** - a signed manage token or the iCal feed token in the path.
+- **host** - Auth.js session cookie required; unauthenticated requests get `401 UNAUTHORIZED`.
 
 ## Error format (single format, used everywhere)
 
@@ -41,7 +41,7 @@ Auth levels:
 
 ## Public booking endpoints
 
-### GET /api/availability — days with open slots (public)
+### GET /api/availability - days with open slots (public)
 
 Query: `eventType` (slug), `month` (`YYYY-MM`, visitor-local), `tz` (IANA).
 
@@ -61,7 +61,7 @@ Query: `eventType` (slug), `month` (`YYYY-MM`, visitor-local), `tz` (IANA).
 Days are visitor-local dates covering the requested month; days entirely before
 `now + minNotice` or beyond `maxDaysAhead` are `false`. Unknown/inactive slug -> 404.
 
-### GET /api/slots — slots for one day (public)
+### GET /api/slots - slots for one day (public)
 
 Query: `eventType` (slug), `date` (`YYYY-MM-DD`, visitor-local), `tz` (IANA).
 
@@ -80,7 +80,7 @@ Query: `eventType` (slug), `date` (`YYYY-MM-DD`, visitor-local), `tz` (IANA).
 `slots` contains every open instant whose start falls on `date` in `tz`, already filtered by
 notice, horizon, buffers, and existing bookings. Empty day -> `"slots": []` (200, not an error).
 
-### POST /api/bookings — create a booking (public)
+### POST /api/bookings - create a booking (public)
 
 ```json
 // request
@@ -141,7 +141,7 @@ The token in the path is `base64url(bookingId) + "." + hmacSha256(bookingId, LIN
 Malformed or mismatched -> 404 `TOKEN_INVALID`. Cancelled or past booking -> 410
 `BOOKING_NOT_ACTIONABLE` (GET still returns the booking with its status so the page can explain).
 
-### GET /api/manage/[token] — booking details for the manage page
+### GET /api/manage/[token] - booking details for the manage page
 
 ```json
 // 200
@@ -206,7 +206,7 @@ not conflict with itself.
   anything else -> 404 (plain, no error body needed).
 - Body: one `VCALENDAR` (`PRODID`, `VERSION:2.0`, `CALSCALE:GREGORIAN`, `X-WR-CALNAME` with the
   host name) containing a `VEVENT` per confirmed booking from 30 days past to the horizon: `UID`
-  (= `icsUid`), `SEQUENCE`, `DTSTAMP`, `DTSTART`/`DTEND` in UTC, `SUMMARY` ("Intro call — Dana
+  (= `icsUid`), `SEQUENCE`, `DTSTAMP`, `DTSTART`/`DTEND` in UTC, `SUMMARY` ("Intro call - Dana
   Ortiz"), `DESCRIPTION` (invitee email, manage note), `STATUS:CONFIRMED`.
 - Cancelled bookings are omitted; subscribers drop their UIDs on refresh. No METHOD property (this
   is a published calendar, not an invite).
@@ -219,7 +219,7 @@ Auth.js owns `/api/auth/*` (sign-in, sign-out, session). Everything below return
 ### Event types
 
 - `GET /api/event-types` -> `{ "eventTypes": [ ... ] }` (all, including inactive).
-- `POST /api/event-types` — create.
+- `POST /api/event-types` - create.
 
 ```json
 // request
@@ -252,17 +252,17 @@ index. `type` is `short_text | long_text | single_choice`; single choice needs >
 `options` and other types must send an empty `options`. Max 25 questions. Field errors surface as
 `questions.<index>.label` / `questions.<index>.options`.
 
-- `PATCH /api/event-types/[id]` — partial update, same fields, same validation. Supplying
+- `PATCH /api/event-types/[id]` - partial update, same fields, same validation. Supplying
   `questions` replaces the whole set atomically; omitting it leaves the questions untouched. Edits
   never touch existing bookings' stored times, blocks, or answers.
-- `DELETE /api/event-types/[id]` — 409 `VALIDATION_ERROR` if the type has any booking (deactivate
+- `DELETE /api/event-types/[id]` - 409 `VALIDATION_ERROR` if the type has any booking (deactivate
   instead); 200 `{ "deleted": true }` otherwise.
 - Duplicate slug -> 400 `VALIDATION_ERROR` with `fields.slug`.
 
 ### Availability
 
 - `GET /api/host/availability` -> current weekly rules.
-- `PUT /api/host/availability` — replaces the full weekly rule set atomically:
+- `PUT /api/host/availability` - replaces the full weekly rule set atomically:
 
 ```json
 // request
@@ -278,7 +278,7 @@ index. `type` is `short_text | long_text | single_choice`; single choice needs >
 windows on the same weekday -> 400 `VALIDATION_ERROR`. Response echoes the stored rules with ids.
 
 - `GET /api/host/overrides`, `POST /api/host/overrides`
-  (`{ "date": "2026-08-15", "windows": [{ "startMinute": 600, "endMinute": 840 }] }` — replaces
+  (`{ "date": "2026-08-15", "windows": [{ "startMinute": 600, "endMinute": 840 }] }` - replaces
   that date's rows), `DELETE /api/host/overrides/[id]`.
 - `GET /api/host/blackouts`, `POST /api/host/blackouts` (`{ "date": "2026-08-20" }`),
   `DELETE /api/host/blackouts/[id]`. Duplicate date -> 400.
@@ -286,6 +286,6 @@ windows on the same weekday -> 400 `VALIDATION_ERROR`. Response echoes the store
 ### Host bookings
 
 - Dashboard reads go through server components (`lib/queries/bookings.ts`), not a JSON route.
-- `POST /api/host/bookings/[id]/cancel` — body `{ "reason": "..." }` (optional). Same behavior and
+- `POST /api/host/bookings/[id]/cancel` - body `{ "reason": "..." }` (optional). Same behavior and
   response shape as the invitee cancel; `cancelledBy` recorded as `host`. Unknown id -> 404;
   already cancelled/past -> 410.

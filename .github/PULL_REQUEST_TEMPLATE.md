@@ -17,7 +17,7 @@ Describe the change and the problem it solves. Link any related issue (`Closes #
 - [ ] `npm run typecheck` passes.
 - [ ] `npm run lint` passes.
 - [ ] `npm run test` passes (unit + component).
-- [ ] `npm run test:integration` passes against Postgres 16 — required for anything touching
+- [ ] `npm run test:integration` passes against Postgres 16 - required for anything touching
       bookings, availability writes, the ics pipeline, or reminders.
 - [ ] `npm run build` succeeds.
 - [ ] Added or updated tests for the behavior I changed (see `docs/testing.md`).
