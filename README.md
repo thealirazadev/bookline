@@ -7,7 +7,9 @@ An appointment booking app for a single host (freelancer, consultant, barber). T
 event types (duration, buffers, notice rules) and weekly availability with date overrides, then
 shares a public booking page. Visitors see open slots in their own timezone, book with name and
 email, and both sides get confirmation emails with a calendar invite; cancel and reschedule work
-through signed links, and an iCal feed lets external calendars subscribe.
+through signed links, and an iCal feed lets external calendars subscribe. Hosts can also attach
+custom intake questions to an event type, collected on the booking form and carried into the
+booking record, the confirmation email, and the calendar invite.
 
 Status: in development
 
@@ -80,6 +82,12 @@ rationale lives in `docs/architecture.md` and `docs/memory.md`.
   update in place instead of duplicating. The popular `ics` package handles METHOD/SEQUENCE
   awkwardly; the needed subset (VCALENDAR/VEVENT, UTC times, 75-octet folding, TEXT escaping, CRLF)
   is ~130 fully unit-tested lines.
+- **Custom intake answers are snapshotted onto the booking, not just linked to the question.** Each
+  answer stores the question's label and display order at booking time, with a nullable
+  `questionId` that is `SET NULL` if the question is later edited or removed. A booking's detail
+  page, email, and invite therefore render exactly what the invitee saw, even after the host
+  reworks the event type's questions. Rejected: rendering answers by joining to the current
+  questions, which would silently rewrite or drop history on any later edit.
 - **The reminder scheduler runs in-process and assumes one long-running server.** `instrumentation.ts`
   starts a 60-second loop that claims due reminders with a single atomic
   `UPDATE ... WHERE reminderSentAt IS NULL`, so a double fire is harmless. Trade-off: this assumes a

@@ -242,6 +242,18 @@ EventType {
   createdAt / updatedAt
 }
 
+IntakeQuestion {                       // host-authored booking-form question, v2
+  id           String  @id
+  eventTypeId  String  -> EventType
+  label        String
+  type         String                  // 'short_text' | 'long_text' | 'single_choice'
+  required     Boolean
+  order        Int                     // display order on the booking form
+  options      String[]                // choices for single_choice; empty otherwise
+  createdAt / updatedAt
+  @@index([eventTypeId])
+}
+
 AvailabilityRule {                     // weekly recurring windows, host timezone
   id           String @id
   hostId       String -> Host
@@ -285,6 +297,18 @@ Booking {
   reminderSentAt   DateTime?           // claim marker for the reminder job
   createdAt / updatedAt
 }
+
+IntakeAnswer {                         // one answer to an IntakeQuestion, v2
+  id           String  @id
+  bookingId    String  -> Booking
+  questionId   String? -> IntakeQuestion  // nullable; SET NULL if the question is removed
+  label        String                  // snapshot of the question label at booking time
+  value        String                  // answer text (chosen option for single_choice)
+  order        Int                     // snapshot of display order for stable rendering
+  createdAt
+  @@index([bookingId])
+  @@index([questionId])
+}
 ```
 
 Raw SQL carried in the initial migration (Prisma DSL cannot express it):
@@ -308,6 +332,12 @@ Notes:
   constraint re-checks automatically. Cancelled rows leave the constraint's scope, freeing the slot.
 - `status` stays a plain string with a CHECK constraint in the migration rather than an enum, to
   keep future states a migration away.
+- (v2) `IntakeQuestion`/`IntakeAnswer` are added by a later migration (`add_intake_questions`), not
+  the initial one. `IntakeQuestion.type` gets its own CHECK (`short_text | long_text |
+  single_choice`), mirroring `booking_status_check`. Answers snapshot the question's `label` and
+  `order` and keep a nullable `questionId` (`ON DELETE SET NULL`) so a booking's recorded answers
+  survive unchanged when the host later edits or removes the question. Editing an event type's
+  questions replaces the set atomically; existing answers are untouched.
 
 ## The slot engine (`lib/slots/`)
 

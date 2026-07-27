@@ -95,9 +95,30 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   build; `prisma migrate deploy` re-applied to a fresh Postgres 16 database with `btree_gist` and
   `booking_no_overlap` confirmed present.
 
+- 2026-07-27 — Phase 6 complete (v2 feature: custom intake questions). New migration
+  `add_intake_questions` adds `IntakeQuestion` (per event type: label, type, required, order,
+  options text[]) and `IntakeAnswer` (per booking: snapshot label/order, value, nullable questionId
+  ON DELETE SET NULL), plus a raw-SQL `intake_question_type_check` mirroring `booking_status_check`;
+  `btree_gist`/`booking_no_overlap` still apply on a clean `migrate reset`. Event-type create/patch
+  accept an ordered `questions` array (Zod: label required, single choice >= 2 unique options,
+  options only on single choice, max 25); patch replaces the set atomically, omitting it leaves it
+  untouched. Dashboard editor (`QuestionsEditor`) adds/edits/reorders/removes questions inline. The
+  public booking form renders each question after name/email by type (input / textarea / radio
+  group) and posts `answers` keyed by question id. `createBooking` validates answers server-side
+  (required, choice membership, 200/2000 length caps -> 400 with `answers.<id>` fields) and stores
+  them in the same transaction, snapshotting label/order. New `/dashboard/bookings/[id]` detail page
+  shows answers in order; the bookings table links to it. Confirmation email (invitee + host) and
+  the METHOD:REQUEST .ics DESCRIPTION include the answers; reschedule/cancel invites unchanged.
+  Tests: integration `tests/integration/intake.test.ts` (`intake-required-answer-missing-rejected`,
+  `intake-invalid-choice-rejected`, `intake-answers-persisted-and-loaded`,
+  `intake-answers-in-generated-ics`) and a `buildInviteIcs` unit test. Verified against Postgres 16
+  (local Docker `bookline-postgres`): typecheck, lint, 68 unit + 26 integration, build all green;
+  existing DST, concurrency, and ics-pipeline tests stay green. `docs/architecture.md` data model
+  updated (flagged) with the two new tables; README and `docs/api-contracts.md` updated.
+
 ## In progress
 
-- Implementation complete through Phase 5.
+- Implementation complete through Phase 6.
 
 ## Decisions log
 
@@ -190,6 +211,18 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   `overrides: { "next-auth": { "nodemailer": "$nodemailer" } }`, which states the one deliberate
   deviation instead of switching peer checking off everywhere. `npm ci` resolves clean without the
   flag; the CI comment that referenced `.npmrc` was updated.
+- 2026-07-27 — Intake answers snapshot the question's `label` and `order` onto `IntakeAnswer` and
+  keep a nullable `questionId` (`ON DELETE SET NULL`), rather than rendering answers by joining to
+  the live `IntakeQuestion`. Reason: a booking is a historical record; if the host later edits or
+  removes a question, the answer already collected must still read exactly as the invitee gave it.
+  Joining to current questions would silently rewrite or drop that history. Editing an event type's
+  questions is therefore a delete-all + recreate inside a transaction (same pattern as the weekly
+  rules editor); the SET NULL keeps prior answers intact through it.
+- 2026-07-27 — Per-answer validation (required, single-choice membership, per-type length caps)
+  runs in `createBooking` against the event type's loaded questions, not as a static Zod schema, and
+  throws a 400 with `answers.<questionId>` field keys. Reason: the rules depend on the event type's
+  questions, which are only known at request time. The wire schema keeps a blunt ceiling
+  (`z.record(string, string().max(2000))`) as a safety net; the per-question check is the authority.
 - 2026-07-22 — postcss and sharp are fixed with `overrides` under `next`, not by upgrading Next.
   Reason: Next pins `postcss` to exactly 8.4.31 and `sharp` to `^0.34.x` in every published release
   including 16.2.11, so no Next upgrade clears either advisory; only an override does. postcss is

@@ -89,9 +89,16 @@ notice, horizon, buffers, and existing bookings. Empty day -> `"slots": []` (200
   "startUtc": "2026-08-03T16:00:00Z",
   "name": "Dana Ortiz",
   "email": "dana@example.com",
-  "timezone": "America/Los_Angeles"
+  "timezone": "America/Los_Angeles",
+  "answers": { "<questionId>": "Dana Ortiz", "<questionId>": "Video" }
 }
 ```
+
+`answers` (optional, v2) maps each event-type intake-question id to its answer. Required questions
+must be present and non-empty, single-choice values must match an option, short-text is capped at
+200 and long-text at 2000 characters; a violation returns 400 `VALIDATION_ERROR` with the offending
+key as `answers.<questionId>` in `fields`. Answers are stored with the booking and appear on the
+dashboard booking detail, the confirmation email, and the `.ics` DESCRIPTION.
 
 ```json
 // 201
@@ -226,17 +233,28 @@ Auth.js owns `/api/auth/*` (sign-in, sign-out, session). Everything below return
   "minNoticeMin": 240,
   "maxDaysAhead": 30,
   "reminderLeadMin": 60,
-  "active": true
+  "active": true,
+  "questions": [
+    { "label": "Full name", "type": "short_text", "required": true, "options": [] },
+    { "label": "Preferred format", "type": "single_choice", "required": true,
+      "options": ["Video", "Phone"] }
+  ]
 }
 ```
 
 ```json
 // 201
-{ "eventType": { "id": "et_01h2k4", "slug": "intro-call", "...": "all fields above" } }
+{ "eventType": { "id": "et_01h2k4", "slug": "intro-call", "questions": [ ... ], "...": "all fields above" } }
 ```
 
-- `PATCH /api/event-types/[id]` — partial update, same fields, same validation. Edits never touch
-  existing bookings' stored times or blocks.
+`questions` (optional, v2) is an ordered array of intake questions; display order is the array
+index. `type` is `short_text | long_text | single_choice`; single choice needs >= 2 unique
+`options` and other types must send an empty `options`. Max 25 questions. Field errors surface as
+`questions.<index>.label` / `questions.<index>.options`.
+
+- `PATCH /api/event-types/[id]` — partial update, same fields, same validation. Supplying
+  `questions` replaces the whole set atomically; omitting it leaves the questions untouched. Edits
+  never touch existing bookings' stored times, blocks, or answers.
 - `DELETE /api/event-types/[id]` — 409 `VALIDATION_ERROR` if the type has any booking (deactivate
   instead); 200 `{ "deleted": true }` otherwise.
 - Duplicate slug -> 400 `VALIDATION_ERROR` with `fields.slug`.
