@@ -21,6 +21,7 @@ export interface BookingNotification {
   invitee: { name: string; email: string; timezone: string };
   host: { name: string; email: string; timezone: string };
   manageUrl: string;
+  answers?: { label: string; value: string }[];
 }
 
 function emailData(notification: BookingNotification): BookingEmailData {
@@ -32,6 +33,7 @@ function emailData(notification: BookingNotification): BookingEmailData {
     startUtc: notification.startUtc,
     endUtc: notification.endUtc,
     manageUrl: notification.manageUrl,
+    answers: notification.answers,
   };
 }
 
@@ -50,6 +52,7 @@ function icsAttachment(
     hostName: notification.host.name,
     hostEmail: notification.host.email,
     manageUrl: notification.manageUrl,
+    answers: notification.answers,
   };
   return {
     filename: "invite.ics",

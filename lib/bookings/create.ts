@@ -213,6 +213,7 @@ export async function createBooking(
       timezone: eventType.hostTimezone,
     },
     manageUrl: url,
+    answers: answerRows.map((row) => ({ label: row.label, value: row.value })),
   });
 
   logger.info({

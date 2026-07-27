@@ -13,6 +13,7 @@ export interface InviteBooking {
   hostName: string;
   hostEmail: string;
   manageUrl: string;
+  answers?: { label: string; value: string }[];
 }
 
 /**
@@ -25,10 +26,20 @@ export function buildInviteIcs(
   method: CalendarMethod,
 ): string {
   const summary = `${booking.eventTypeName} — ${booking.inviteeName}`;
+  const requestLines = [
+    `Invitee: ${booking.inviteeEmail}`,
+    `Manage: ${booking.manageUrl}`,
+  ];
+  if (booking.answers && booking.answers.length > 0) {
+    requestLines.push(
+      "",
+      ...booking.answers.map((answer) => `${answer.label}: ${answer.value}`),
+    );
+  }
   const description =
     method === "CANCEL"
       ? "This appointment has been cancelled."
-      : `Invitee: ${booking.inviteeEmail}\nManage: ${booking.manageUrl}`;
+      : requestLines.join("\n");
 
   return writeCalendar({
     prodId: PRODID,

@@ -8,6 +8,13 @@ export interface BookingEmailData {
   startUtc: Date;
   endUtc: Date;
   manageUrl: string;
+  answers?: { label: string; value: string }[];
+}
+
+/** Render intake answers as blank-line-separated "label: value" text lines. */
+function answerLines(data: BookingEmailData): string[] {
+  if (!data.answers || data.answers.length === 0) return [];
+  return ["", ...data.answers.map((a) => `${a.label}: ${a.value}`)];
 }
 
 export interface RenderedEmail {
@@ -83,6 +90,7 @@ export function confirmationEmail(
       lines: [
         `${data.inviteeName} (${data.inviteeEmail}) booked ${data.eventTypeName}.`,
         `When: ${when}`,
+        ...answerLines(data),
       ],
     });
   }
@@ -94,6 +102,7 @@ export function confirmationEmail(
     lines: [
       `Hi ${data.inviteeName},`,
       `Your ${data.eventTypeName} is confirmed for ${when}.`,
+      ...answerLines(data),
     ],
     manageUrl: data.manageUrl,
     manageLabel: "Cancel or reschedule",
