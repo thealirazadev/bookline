@@ -45,10 +45,30 @@ model EventType {
   createdAt       DateTime @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @db.Timestamptz(3)
 
-  host     Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  bookings Booking[]
+  host      Host             @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+  questions IntakeQuestion[]
 
   @@index([hostId])
+}
+
+// Host-authored questions shown on the public booking form for an event type.
+// `type` is constrained to a known set by a raw-SQL CHECK in the migration.
+model IntakeQuestion {
+  id          String   @id @default(cuid())
+  eventTypeId String
+  label       String
+  type        String
+  required    Boolean  @default(false)
+  order       Int
+  options     String[]
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  eventType EventType      @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  answers   IntakeAnswer[]
+
+  @@index([eventTypeId])
 }
 
 model AvailabilityRule {
@@ -106,10 +126,30 @@ model Booking {
   createdAt       DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
 
-  host      Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  eventType EventType @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+  host      Host           @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  eventType EventType      @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+  answers   IntakeAnswer[]
 
   @@index([hostId, status])
   @@index([eventTypeId])
   @@index([startUtc])
+}
+
+// A booking's answer to one intake question. `label` and `order` are snapshotted
+// at booking time so the record renders unchanged if the question is later edited
+// or removed; `questionId` is nullable and SET NULL on delete to keep the answer.
+model IntakeAnswer {
+  id         String   @id @default(cuid())
+  bookingId  String
+  questionId String?
+  label      String
+  value      String
+  order      Int
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  booking  Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  question IntakeQuestion? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@index([questionId])
 }
