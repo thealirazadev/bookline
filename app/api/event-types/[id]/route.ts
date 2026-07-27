@@ -7,24 +7,14 @@ import {
   unauthorized,
   validationError,
 } from "@/lib/errors";
-import { getEventTypeById } from "@/lib/queries/eventTypes";
+import {
+  EVENT_TYPE_RESPONSE_SELECT,
+  getEventTypeById,
+  questionCreateRows,
+} from "@/lib/queries/eventTypes";
 import { getSessionHost } from "@/lib/queries/host";
 import { eventTypePatchSchema } from "@/lib/validation/eventType";
 import { zodToFields } from "@/lib/validation/common";
-
-const RESPONSE_SELECT = {
-  id: true,
-  name: true,
-  slug: true,
-  description: true,
-  durationMin: true,
-  bufferBeforeMin: true,
-  bufferAfterMin: true,
-  minNoticeMin: true,
-  maxDaysAhead: true,
-  reminderLeadMin: true,
-  active: true,
-} as const;
 
 export async function PATCH(
   request: Request,
@@ -52,10 +42,24 @@ export async function PATCH(
       if (clash) throw validationError({ slug: "That slug is already in use." });
     }
 
-    const eventType = await prisma.eventType.update({
-      where: { id },
-      data: parsed.data,
-      select: RESPONSE_SELECT,
+    const { questions, ...scalars } = parsed.data;
+    // Replace the question set atomically only when it is supplied; an absent
+    // `questions` leaves the existing questions untouched.
+    const eventType = await prisma.$transaction(async (tx) => {
+      if (questions !== undefined) {
+        await tx.intakeQuestion.deleteMany({ where: { eventTypeId: id } });
+        await tx.intakeQuestion.createMany({
+          data: questionCreateRows(questions).map((row) => ({
+            ...row,
+            eventTypeId: id,
+          })),
+        });
+      }
+      return tx.eventType.update({
+        where: { id },
+        data: scalars,
+        select: EVENT_TYPE_RESPONSE_SELECT,
+      });
     });
     return NextResponse.json({ eventType });
   } catch (error) {

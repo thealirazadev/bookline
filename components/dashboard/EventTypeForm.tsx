@@ -5,9 +5,25 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/Input";
+import {
+  QuestionsEditor,
+  parseOptions,
+  type QuestionDraft,
+} from "@/components/dashboard/QuestionsEditor";
 import type { EventTypeRecord } from "@/lib/queries/eventTypes";
+import type { QuestionType } from "@/lib/validation/eventType";
 
 type FieldErrors = Record<string, string>;
+
+function initialQuestions(eventType?: EventTypeRecord): QuestionDraft[] {
+  return (eventType?.questions ?? []).map((question) => ({
+    key: question.id,
+    label: question.label,
+    type: question.type as QuestionType,
+    required: question.required,
+    optionsText: question.options.join("\n"),
+  }));
+}
 
 const NUMERIC_FIELDS = [
   { key: "durationMin", label: "Duration (minutes)" },
@@ -37,6 +53,9 @@ export function EventTypeForm({ eventType }: { eventType?: EventTypeRecord }) {
   const router = useRouter();
   const isEdit = Boolean(eventType);
   const [values, setValues] = useState(() => initialValues(eventType));
+  const [questions, setQuestions] = useState<QuestionDraft[]>(() =>
+    initialQuestions(eventType),
+  );
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -65,6 +84,15 @@ export function EventTypeForm({ eventType }: { eventType?: EventTypeRecord }) {
         maxDaysAhead: Number(values.maxDaysAhead),
         reminderLeadMin: Number(values.reminderLeadMin),
         active: values.active,
+        questions: questions.map((question) => ({
+          label: question.label,
+          type: question.type,
+          required: question.required,
+          options:
+            question.type === "single_choice"
+              ? parseOptions(question.optionsText)
+              : [],
+        })),
       };
       const res = await fetch(
         isEdit ? `/api/event-types/${eventType?.id}` : "/api/event-types",
@@ -176,6 +204,12 @@ export function EventTypeForm({ eventType }: { eventType?: EventTypeRecord }) {
           Active (visible on the public booking page)
         </span>
       </label>
+
+      <QuestionsEditor
+        questions={questions}
+        errors={errors}
+        onChange={setQuestions}
+      />
 
       {notice ? (
         <p role="alert" className="text-sm text-danger">

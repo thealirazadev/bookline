@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { handleRouteError, unauthorized, validationError } from "@/lib/errors";
 import { getSessionHost } from "@/lib/queries/host";
+import {
+  EVENT_TYPE_RESPONSE_SELECT,
+  questionCreateRows,
+} from "@/lib/queries/eventTypes";
 import { listAllEventTypes } from "@/lib/queries/eventTypes";
 import { eventTypeCreateSchema } from "@/lib/validation/eventType";
 import { zodToFields } from "@/lib/validation/common";
@@ -36,21 +40,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw validationError({ slug: "That slug is already in use." });
     }
 
+    const { questions, ...scalars } = parsed.data;
     const eventType = await prisma.eventType.create({
-      data: { ...parsed.data, hostId: host.id },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        durationMin: true,
-        bufferBeforeMin: true,
-        bufferAfterMin: true,
-        minNoticeMin: true,
-        maxDaysAhead: true,
-        reminderLeadMin: true,
-        active: true,
+      data: {
+        ...scalars,
+        hostId: host.id,
+        questions: { create: questionCreateRows(questions ?? []) },
       },
+      select: EVENT_TYPE_RESPONSE_SELECT,
     });
     return NextResponse.json({ eventType }, { status: 201 });
   } catch (error) {
