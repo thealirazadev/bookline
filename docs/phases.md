@@ -270,6 +270,75 @@ Playwright smoke test guards the booking flow.
 
 ---
 
+## Phase 6 — Custom intake questions (v2)
+
+Goal: a host can attach custom questions to an event type; the public booking form collects the
+answers after the name/email step, validates them server-side, stores them with the booking, and
+surfaces them on the dashboard booking detail, in the confirmation email, and in the calendar
+invite. No change to slot math, the exclusion constraint, or the RFC 5545 writer beyond adding
+answer text to an event's DESCRIPTION.
+
+### Definition of done
+- Two new tables via one Prisma migration: `IntakeQuestion` (per event type: `label`, `type` in
+  `short_text | long_text | single_choice`, `required`, `order`, `options` text[]) and
+  `IntakeAnswer` (per booking: snapshotted `label`/`order`, `value`, nullable `questionId` with
+  `ON DELETE SET NULL` so history survives a later question edit). A raw-SQL CHECK constrains
+  `IntakeQuestion.type` to the known set, mirroring `booking_status_check`. The existing
+  `btree_gist` + `booking_no_overlap` migration still applies on a clean `migrate reset`.
+- Event-type create/patch accept an ordered `questions` array (Zod-validated: label required,
+  single choice needs >= 2 options, options only on single choice, max 25 questions). Patch replaces
+  the set atomically; omitting `questions` leaves them untouched. The dashboard editor adds, edits,
+  reorders, and removes questions inline with field-level errors.
+- The public booking form renders each question after name/email in `order`: short text -> input,
+  long text -> textarea, single choice -> radio group. Answers post as `answers` keyed by question id.
+- Server-side validation in `createBooking`: required answers rejected when missing, single-choice
+  values must match an option, short text capped at 200 and long text at 2000 characters. Failures
+  return 400 with `answers.<id>` field errors; the form maps them back to each question.
+- Answers persist in the same transaction as the booking (nested create), snapshotting label/order.
+- The dashboard booking detail page shows each answer (label + value) in order; the bookings table
+  links to it.
+- The confirmation email (invitee + host) and the METHOD:REQUEST `.ics` DESCRIPTION include the
+  answers. Reschedule/cancel invites are unchanged.
+
+### Named required test cases (must exist with these names)
+- `intake-required-answer-missing-rejected` — a required question with no answer -> 400 with an
+  `answers.<id>` field error; no booking row created.
+- `intake-invalid-choice-rejected` — a single-choice answer not in the option list -> 400; no row.
+- `intake-answers-persisted-and-loaded` — valid answers create the booking and are readable back in
+  `order` with their snapshotted labels via the dashboard detail query.
+- `intake-answers-in-generated-ics` — the invite produced by the create flow carries each answer
+  in its DESCRIPTION.
+
+### Manual test checklist
+- Add a short-text (required), a long-text, and a single-choice question to an event type; open
+  `/book/<slug>` -> the three fields render after email in order; submit empty -> the required one
+  errors inline, nothing booked; pick a bogus choice via devtools -> 400; fill valid -> booked.
+- Dashboard booking detail shows the three answers in order; Mailpit confirmation email and the
+  `.ics` attachment both list them.
+- Remove a question from the event type after a booking exists -> the past booking's answer still
+  shows on its detail page (snapshot preserved).
+
+### Verification
+- `npm run typecheck`, `npm run lint`, `npm run test`, `npm run test:integration`, `npm run build`
+  all pass; existing DST, concurrency, and ics-pipeline tests stay green.
+- `npx prisma migrate reset` replays every migration including `btree_gist`/`booking_no_overlap`.
+- Unhappy paths: single choice with < 2 options rejected in the editor; an over-length answer
+  rejected server-side; a booking with no questions behaves exactly as before.
+
+### Commits
+- `docs(phases): add phase 6 for custom intake questions`
+- `feat(db): add intake question and answer models and migration`
+- `feat(validation): add intake question and answer schemas`
+- `feat(event-types): manage intake questions in the editor`
+- `feat(booking): render and validate intake answers`
+- `feat(dashboard): show intake answers on booking detail`
+- `feat(ics): include intake answers in invite and confirmation email`
+- `test(booking): cover intake answer validation and persistence`
+- `test(ics): cover intake answers in the generated invite`
+- `docs(readme): document custom intake questions`
+
+---
+
 ## Backlog
 
 _(empty)_
