@@ -1,6 +1,7 @@
 "use client";
 
 import { DateTime } from "luxon";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
@@ -127,15 +128,23 @@ export function BookingsTable({
                     </Badge>
                   </td>
                   <td className="py-3 text-right">
-                    {tab === "upcoming" && booking.status === "confirmed" ? (
-                      <button
-                        type="button"
-                        onClick={() => setCancelTarget(booking)}
-                        className="rounded-md px-2 py-1 text-sm font-medium text-danger hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                    <div className="flex items-center justify-end gap-1">
+                      <Link
+                        href={`/dashboard/bookings/${booking.id}`}
+                        className="rounded-md px-2 py-1 text-sm font-medium text-accent hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                       >
-                        Cancel
-                      </button>
-                    ) : null}
+                        Details
+                      </Link>
+                      {tab === "upcoming" && booking.status === "confirmed" ? (
+                        <button
+                          type="button"
+                          onClick={() => setCancelTarget(booking)}
+                          className="rounded-md px-2 py-1 text-sm font-medium text-danger hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                        >
+                          Cancel
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -162,15 +171,23 @@ export function BookingsTable({
                   {formatWhen(booking.startUtc, hostTimezone)}
                 </p>
                 <p className="mt-1 text-sm">{booking.inviteeName}</p>
-                {tab === "upcoming" && booking.status === "confirmed" ? (
-                  <button
-                    type="button"
-                    onClick={() => setCancelTarget(booking)}
-                    className="mt-2 rounded-md px-2 py-1 text-sm font-medium text-danger hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                <div className="mt-2 flex items-center gap-1">
+                  <Link
+                    href={`/dashboard/bookings/${booking.id}`}
+                    className="rounded-md px-2 py-1 text-sm font-medium text-accent hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                   >
-                    Cancel
-                  </button>
-                ) : null}
+                    Details
+                  </Link>
+                  {tab === "upcoming" && booking.status === "confirmed" ? (
+                    <button
+                      type="button"
+                      onClick={() => setCancelTarget(booking)}
+                      className="rounded-md px-2 py-1 text-sm font-medium text-danger hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                    >
+                      Cancel
+                    </button>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>

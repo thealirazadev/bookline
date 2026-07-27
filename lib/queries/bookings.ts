@@ -95,6 +95,58 @@ export async function listDashboardBookings(
   };
 }
 
+export interface DashboardBookingDetail {
+  id: string;
+  eventTypeName: string;
+  inviteeName: string;
+  inviteeEmail: string;
+  inviteeTimezone: string;
+  startUtc: string;
+  endUtc: string;
+  status: string;
+  answers: { id: string; label: string; value: string }[];
+}
+
+/**
+ * One booking owned by the host, with its intake answers in display order, for
+ * the dashboard detail page. Returns null when the booking is missing or the
+ * host does not own it.
+ */
+export async function loadDashboardBookingDetail(
+  bookingId: string,
+  hostId: string,
+): Promise<DashboardBookingDetail | null> {
+  const booking = await prisma.booking.findFirst({
+    where: { id: bookingId, hostId },
+    select: {
+      id: true,
+      inviteeName: true,
+      inviteeEmail: true,
+      inviteeTimezone: true,
+      startUtc: true,
+      endUtc: true,
+      status: true,
+      eventType: { select: { name: true } },
+      answers: {
+        orderBy: { order: "asc" },
+        select: { id: true, label: true, value: true },
+      },
+    },
+  });
+  if (!booking) return null;
+  return {
+    id: booking.id,
+    eventTypeName: booking.eventType.name,
+    inviteeName: booking.inviteeName,
+    inviteeEmail: booking.inviteeEmail,
+    inviteeTimezone: booking.inviteeTimezone,
+    startUtc: toUtcIso(booking.startUtc),
+    endUtc: toUtcIso(booking.endUtc),
+    status: booking.status,
+    answers: booking.answers,
+  };
+}
+
 /** Full booking with the host and event-type context needed to act on it. */
 export async function loadBookingContext(bookingId: string) {
   return prisma.booking.findUnique({
