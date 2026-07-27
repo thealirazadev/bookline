@@ -66,6 +66,28 @@ describe("buildInviteIcs RFC 5545 compliance", () => {
     expect(seen.size).toBe(1);
   });
 
+  it("intake-answers-in-generated-ics", () => {
+    // A REQUEST invite lists each intake answer in its DESCRIPTION after the
+    // invitee/manage lines; a CANCEL invite carries none of them.
+    const answers = [
+      { label: "Full name", value: "Ada Lovelace" },
+      { label: "Preferred format", value: "Video" },
+    ];
+    const request = unfold(invite({ answers }, "REQUEST"));
+    const description = request
+      .split("\r\n")
+      .find((line) => line.startsWith("DESCRIPTION:"));
+    expect(description).toBeDefined();
+    expect(description).toContain("Full name: Ada Lovelace");
+    expect(description).toContain("Preferred format: Video");
+
+    const cancel = unfold(invite({ answers }, "CANCEL"));
+    expect(cancel).toContain(
+      "DESCRIPTION:This appointment has been cancelled.",
+    );
+    expect(cancel).not.toContain("Full name: Ada Lovelace");
+  });
+
   it("folds a multi-byte invitee name without splitting a character", () => {
     const inviteeName = "Café ☕ Señor ñoño ".repeat(6).trim();
     const out = invite({ inviteeName }, "REQUEST");
