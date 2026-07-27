@@ -6,6 +6,7 @@ import {
   slugSchema,
   timezoneSchema,
 } from "./common";
+import { LONG_TEXT_MAX } from "./eventType";
 
 export const availabilityQuerySchema = z.object({
   eventType: slugSchema,
@@ -29,6 +30,10 @@ export const createBookingSchema = z.object({
     .email({ message: "Enter a valid email address." })
     .max(320),
   timezone: timezoneSchema,
+  // Answers keyed by intake-question id. The wire ceiling is the longest
+  // allowed answer; per-question rules (required, choice, exact cap) run in
+  // createBooking against the event type's questions.
+  answers: z.record(z.string(), z.string().max(LONG_TEXT_MAX)).optional(),
 });
 
 export const rescheduleSchema = z.object({

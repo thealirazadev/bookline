@@ -14,11 +14,21 @@ import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import type { DayAvailability, Slot } from "@/lib/slots/types";
 
+export interface BookingQuestion {
+  id: string;
+  label: string;
+  type: string;
+  required: boolean;
+  order: number;
+  options: string[];
+}
+
 export interface BookingEventType {
   slug: string;
   name: string;
   description: string;
   durationMin: number;
+  questions: BookingQuestion[];
 }
 
 function detectTimezone(): string {
@@ -205,6 +215,7 @@ export function BookingPage({ eventType }: { eventType: BookingEventType }) {
             eventTypeSlug={eventType.slug}
             slot={selectedSlot}
             timezone={timezone}
+            questions={eventType.questions}
             onBooked={handleBooked}
             onSlotTaken={handleSlotTaken}
           />

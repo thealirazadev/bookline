@@ -35,6 +35,8 @@ function toBookableEventType(booking: BookingContext): BookableEventType {
     hostTimezone: booking.host.timezone,
     hostName: booking.host.name,
     hostEmail: booking.host.email,
+    // Reschedule only needs slot math; questions are irrelevant here.
+    questions: [],
     config: {
       durationMin: booking.eventType.durationMin,
       bufferBeforeMin: booking.eventType.bufferBeforeMin,

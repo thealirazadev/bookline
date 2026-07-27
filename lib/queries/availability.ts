@@ -47,6 +47,15 @@ export async function getBlackouts(hostId: string): Promise<BlackoutRecord[]> {
   });
 }
 
+export interface IntakeQuestionPublic {
+  id: string;
+  label: string;
+  type: string;
+  required: boolean;
+  order: number;
+  options: string[];
+}
+
 export interface BookableEventType {
   id: string;
   hostId: string;
@@ -57,6 +66,7 @@ export interface BookableEventType {
   hostTimezone: string;
   hostName: string;
   hostEmail: string;
+  questions: IntakeQuestionPublic[];
 }
 
 /** Load an active (publicly bookable) event type with its host details. */
@@ -67,6 +77,17 @@ export async function getActiveEventType(
     where: { slug, active: true },
     include: {
       host: { select: { id: true, timezone: true, name: true, email: true } },
+      questions: {
+        orderBy: { order: "asc" },
+        select: {
+          id: true,
+          label: true,
+          type: true,
+          required: true,
+          order: true,
+          options: true,
+        },
+      },
     },
   });
   if (!eventType) return null;
@@ -79,6 +100,7 @@ export async function getActiveEventType(
     hostTimezone: eventType.host.timezone,
     hostName: eventType.host.name,
     hostEmail: eventType.host.email,
+    questions: eventType.questions,
     config: {
       durationMin: eventType.durationMin,
       bufferBeforeMin: eventType.bufferBeforeMin,

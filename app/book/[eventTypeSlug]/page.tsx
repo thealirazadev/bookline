@@ -21,6 +21,7 @@ export default async function EventBookingPage({
           name: eventType.name,
           description: eventType.description,
           durationMin: eventType.config.durationMin,
+          questions: eventType.questions,
         }}
       />
     </main>

@@ -4,17 +4,81 @@ import { isSlotConflict } from "@/lib/bookings/conflict";
 import { prisma } from "@/lib/db";
 import { sendConfirmationEmails, type EmailStatus } from "@/lib/email/notifications";
 import { env } from "@/lib/env";
-import { notFound, slotTaken, slotUnavailable } from "@/lib/errors";
+import {
+  notFound,
+  slotTaken,
+  slotUnavailable,
+  validationError,
+} from "@/lib/errors";
 import { logger, redactEmail } from "@/lib/logger";
 import {
   buildSlotQuery,
   getActiveEventType,
   type BookableEventType,
+  type IntakeQuestionPublic,
 } from "@/lib/queries/availability";
 import { slotsForDay } from "@/lib/slots/engine";
 import type { Slot } from "@/lib/slots/types";
 import { manageUrl } from "@/lib/tokens";
 import type { CreateBookingInput } from "@/lib/validation/booking";
+import { LONG_TEXT_MAX, SHORT_TEXT_MAX } from "@/lib/validation/eventType";
+
+export interface AnswerRow {
+  questionId: string;
+  label: string;
+  order: number;
+  value: string;
+}
+
+/**
+ * Validate submitted answers against the event type's questions and shape them
+ * into rows to store. Enforces required questions, single-choice options, and
+ * per-type length caps; a failure throws a 400 with `answers.<id>` field errors.
+ * Empty optional answers are dropped, not stored.
+ */
+export function validateAnswers(
+  questions: IntakeQuestionPublic[],
+  submitted: Record<string, string> | undefined,
+): AnswerRow[] {
+  const answers = submitted ?? {};
+  const fields: Record<string, string> = {};
+  const rows: AnswerRow[] = [];
+
+  for (const question of questions) {
+    const raw = answers[question.id];
+    const value = typeof raw === "string" ? raw.trim() : "";
+
+    if (!value) {
+      if (question.required) {
+        fields[`answers.${question.id}`] = "This question is required.";
+      }
+      continue;
+    }
+
+    const cap =
+      question.type === "long_text" ? LONG_TEXT_MAX : SHORT_TEXT_MAX;
+    if (value.length > cap) {
+      fields[`answers.${question.id}`] =
+        `Keep this answer under ${cap} characters.`;
+      continue;
+    }
+
+    if (question.type === "single_choice" && !question.options.includes(value)) {
+      fields[`answers.${question.id}`] = "Choose one of the options.";
+      continue;
+    }
+
+    rows.push({
+      questionId: question.id,
+      label: question.label,
+      order: question.order,
+      value,
+    });
+  }
+
+  if (Object.keys(fields).length > 0) throw validationError(fields);
+  return rows;
+}
 
 export interface CreatedBooking {
   id: string;
@@ -68,6 +132,8 @@ export async function createBooking(
   const eventType = await getActiveEventType(input.eventType);
   if (!eventType) throw notFound();
 
+  const answerRows = validateAnswers(eventType.questions, input.answers);
+
   const startUtc = new Date(input.startUtc);
   const date = visitorDate(startUtc, input.timezone);
 
@@ -105,6 +171,14 @@ export async function createBooking(
           blockEndUtc,
           status: "confirmed",
           icsUid,
+          answers: {
+            create: answerRows.map((row) => ({
+              questionId: row.questionId,
+              label: row.label,
+              order: row.order,
+              value: row.value,
+            })),
+          },
         },
       }),
     );
