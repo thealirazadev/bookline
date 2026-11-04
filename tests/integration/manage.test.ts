@@ -156,6 +156,36 @@ describe("reschedule path", () => {
     expect(after.startUtc.toISOString()).toBe(new Date(second).toISOString());
   });
 
+  it("clears a sent reminder so the new time gets its own", async () => {
+    const now = new Date();
+    const [first, second] = await openSlots(now, 2);
+    const id = await createConfirmed(first);
+    await prisma.booking.update({
+      where: { id },
+      data: { reminderSentAt: now },
+    });
+
+    await rescheduleBooking(id, { startUtc: second, timezone: "UTC" }, now);
+
+    const row = await prisma.booking.findUniqueOrThrow({ where: { id } });
+    expect(row.reminderSentAt).toBeNull();
+  });
+
+  it("keeps the reminder claim when the time does not change", async () => {
+    const now = new Date();
+    const [slot] = await openSlots(now, 1);
+    const id = await createConfirmed(slot);
+    await prisma.booking.update({
+      where: { id },
+      data: { reminderSentAt: now },
+    });
+
+    await rescheduleBooking(id, { startUtc: slot, timezone: "UTC" }, now);
+
+    const row = await prisma.booking.findUniqueOrThrow({ where: { id } });
+    expect(row.reminderSentAt?.toISOString()).toBe(now.toISOString());
+  });
+
   it("allows rescheduling onto the booking's own current time", async () => {
     const now = new Date();
     const [slot] = await openSlots(now, 1);

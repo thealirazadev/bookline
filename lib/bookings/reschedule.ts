@@ -91,6 +91,7 @@ export async function rescheduleBooking(
   const endUtc = new Date(startUtc.getTime() + durationMin * 60_000);
   const blockStartUtc = new Date(startUtc.getTime() - bufferBeforeMin * 60_000);
   const blockEndUtc = new Date(endUtc.getTime() + bufferAfterMin * 60_000);
+  const moved = startUtc.getTime() !== booking.startUtc.getTime();
 
   // Guard the transition on the status and time we validated above. If a
   // concurrent cancel (or the start passing) lands between the read and here,
@@ -108,6 +109,9 @@ export async function rescheduleBooking(
           blockEndUtc,
           inviteeTimezone: input.timezone,
           icsSequence: { increment: 1 },
+          // A reminder already sent was for the old time; clear the claim so
+          // the job reminds again ahead of the new start.
+          ...(moved ? { reminderSentAt: null } : {}),
         },
       }),
     );
