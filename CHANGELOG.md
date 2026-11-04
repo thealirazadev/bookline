@@ -38,4 +38,16 @@ been tagged yet; everything below is the current, unreleased state of `main`.
 - Repository tooling: CI (GitHub Actions) running typecheck, lint, unit, integration, and build
   against a `postgres:16` service container; Dependabot; MIT license; and a security policy.
 
+### Fixed
+
+- Slot engine: an ambiguous fall-back wall time now always resolves to the earlier instant. It
+  previously depended on whether the server clock was in daylight or standard time.
+- Rescheduling to a new time clears the reminder claim, so the moved booking gets its own reminder.
+- Override and blackout dates, and the public `date` / `month` query parameters, must be real
+  calendar dates (no `2026-02-30` or month `13`).
+- Invitee names with line breaks or other control characters are rejected, so they cannot forge
+  extra lines in emails.
+- Host login spends the same bcrypt work for an unknown email as for a wrong password, so response
+  time does not reveal the host address.
+
 [Unreleased]: https://github.com/thealirazadev/bookline/commits/main
