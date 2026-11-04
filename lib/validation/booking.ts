@@ -23,7 +23,14 @@ export const slotsQuerySchema = z.object({
 export const createBookingSchema = z.object({
   eventType: slugSchema,
   startUtc: isoInstantSchema,
-  name: z.string().trim().min(1, { message: "Enter your name." }).max(200),
+  // The name lands in email subjects, bodies, and invite text; control
+  // characters (line breaks in particular) would let it forge extra lines.
+  name: z
+    .string()
+    .trim()
+    .min(1, { message: "Enter your name." })
+    .max(200)
+    .regex(/^\P{Cc}*$/u, { message: "Enter your name on a single line." }),
   email: z
     .string()
     .trim()

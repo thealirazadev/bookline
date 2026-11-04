@@ -141,6 +141,25 @@ describe("input guards", () => {
     expect(monthSchema.safeParse("2026-12").success).toBe(true);
   });
 
+  it("rejects control characters in the invitee name", () => {
+    const booking = {
+      eventType: "intro-call",
+      startUtc: "2026-08-03T16:00:00Z",
+      email: "dana@example.com",
+      timezone: "UTC",
+    };
+    const forged = ["Dana\r\nBcc: x@example.com", "Dana\nManage: x", "Da\u0000na"];
+    for (const name of forged) {
+      expect(createBookingSchema.safeParse({ ...booking, name }).success).toBe(
+        false,
+      );
+    }
+    expect(
+      createBookingSchema.safeParse({ ...booking, name: "José O'Brien-Šimić" })
+        .success,
+    ).toBe(true);
+  });
+
   it("rejects an invalid booking email", () => {
     const result = createBookingSchema.safeParse({
       eventType: "intro-call",
