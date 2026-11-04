@@ -1,4 +1,4 @@
-import { IANAZone } from "luxon";
+import { DateTime, IANAZone } from "luxon";
 import { z } from "zod";
 
 /** Probe a timezone string against the platform IANA data via Luxon. */
@@ -14,13 +14,19 @@ export const slugSchema = z
   .string()
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: "Enter a valid event type." });
 
+// The shape check alone lets through dates like 2026-02-30 or month 13; the
+// Luxon probe rejects anything that is not a real calendar date.
+const isRealDate = (value: string): boolean => DateTime.fromISO(value).isValid;
+
 export const dateSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Enter a valid date (YYYY-MM-DD)." });
+  .regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Enter a valid date (YYYY-MM-DD)." })
+  .refine(isRealDate, { message: "Enter a valid date (YYYY-MM-DD)." });
 
 export const monthSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}$/, { message: "Enter a valid month (YYYY-MM)." });
+  .regex(/^\d{4}-\d{2}$/, { message: "Enter a valid month (YYYY-MM)." })
+  .refine(isRealDate, { message: "Enter a valid month (YYYY-MM)." });
 
 export const isoInstantSchema = z
   .string()

@@ -5,7 +5,11 @@ import {
   weeklyRulesSchema,
 } from "@/lib/validation/availability";
 import { createBookingSchema } from "@/lib/validation/booking";
-import { timezoneSchema } from "@/lib/validation/common";
+import {
+  dateSchema,
+  monthSchema,
+  timezoneSchema,
+} from "@/lib/validation/common";
 import { eventTypeCreateSchema } from "@/lib/validation/eventType";
 
 describe("weekly rule overlap detection", () => {
@@ -126,6 +130,15 @@ describe("input guards", () => {
   it("rejects an invalid IANA timezone", () => {
     expect(timezoneSchema.safeParse("Mars/Olympus").success).toBe(false);
     expect(timezoneSchema.safeParse("America/New_York").success).toBe(true);
+  });
+
+  it("rejects dates and months that do not exist on the calendar", () => {
+    expect(dateSchema.safeParse("2026-02-30").success).toBe(false);
+    expect(dateSchema.safeParse("2026-13-01").success).toBe(false);
+    expect(dateSchema.safeParse("2028-02-29").success).toBe(true);
+    expect(monthSchema.safeParse("2026-00").success).toBe(false);
+    expect(monthSchema.safeParse("2026-13").success).toBe(false);
+    expect(monthSchema.safeParse("2026-12").success).toBe(true);
   });
 
   it("rejects an invalid booking email", () => {
