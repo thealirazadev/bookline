@@ -1,5 +1,5 @@
-import { DateTime } from "luxon";
-import { describe, expect, it } from "vitest";
+import { DateTime, Settings } from "luxon";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   daysForMonth,
   generateSlots,
@@ -93,6 +93,29 @@ describe("slot engine DST correctness", () => {
       "2026-11-01T08:00:00Z",
     ]);
     expect(new Set(starts(slots)).size).toBe(6);
+  });
+
+  describe("fall-back resolution does not depend on the current clock", () => {
+    const realNow = Settings.now;
+    afterEach(() => {
+      Settings.now = realNow;
+    });
+
+    // Luxon guesses an ambiguous wall time's offset from the offset in effect
+    // "now", so run the same query with the clock in EST and in EDT.
+    for (const clock of ["2026-01-15T12:00:00Z", "2026-07-15T12:00:00Z"]) {
+      it(`picks the earlier 01:00 when the clock reads ${clock}`, () => {
+        Settings.now = () => new Date(clock).getTime();
+        const slots = generateSlots(
+          query({
+            hostTimezone: "America/New_York",
+            rules: [{ weekday: 6, startMinute: 60, endMinute: 120 }],
+          }),
+          ["2026-11-01"],
+        );
+        expect(starts(slots)).toEqual(["2026-11-01T05:00:00Z"]);
+      });
+    }
   });
 
   it("dst-mismatched-transition-windows", () => {
