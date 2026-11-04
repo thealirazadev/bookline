@@ -96,7 +96,7 @@ rationale lives in `docs/architecture.md` and `docs/memory.md`.
 
 ## Requirements
 
-- Node.js 20+ (developed on 24)
+- Node.js 20.19+ (developed on 24, which CI runs)
 - Docker (for Postgres 16 and Mailpit)
 
 ## Install
@@ -171,6 +171,7 @@ minimum notice, Mon-Fri 09:00-17:00 in the host's zone.
 ## Test
 
 ```bash
+npm run typecheck           # tsc --noEmit
 npm run lint                # ESLint
 npm run test                # Vitest unit + component (no DB required)
 npm run test:integration    # Vitest DB-backed suite (requires the compose stack)
