@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { cancelBooking } from "@/lib/bookings/cancel";
 import { prisma } from "@/lib/db";
 import { verifyHostCredentials } from "@/lib/host-credentials";
@@ -60,6 +60,16 @@ describe("host credential verification", () => {
     expect(
       await verifyHostCredentials("nobody@example.com", PASSWORD),
     ).toBeNull();
+  });
+
+  it("does the same bcrypt work for an unknown email as a wrong password", async () => {
+    const compare = vi.spyOn(bcrypt, "compare");
+    try {
+      await verifyHostCredentials("nobody@example.com", PASSWORD);
+      expect(compare).toHaveBeenCalledTimes(1);
+    } finally {
+      compare.mockRestore();
+    }
   });
 });
 
