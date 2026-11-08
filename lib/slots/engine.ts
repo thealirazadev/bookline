@@ -44,8 +44,8 @@ function projectStart(
 
 /**
  * Project a wall time to an instant without the existence check, for window
- * boundaries. Ambiguous times (fall-back) resolve to the earlier offset, which
- * is Luxon's default.
+ * boundaries. Ambiguous times (fall-back) resolve to the earlier offset. Luxon
+ * leaves that choice to the runtime's Intl data, so it is made explicitly here.
  */
 function projectBoundary(
   dayStart: DateTime,
@@ -56,16 +56,33 @@ function projectBoundary(
   const minuteOfDay = ((absMinute % MINUTES_PER_DAY) + MINUTES_PER_DAY) %
     MINUTES_PER_DAY;
   const nominal = dayStart.plus({ days: dayOffset });
-  return DateTime.fromObject(
-    {
-      year: nominal.year,
-      month: nominal.month,
-      day: nominal.day,
-      hour: Math.floor(minuteOfDay / 60),
-      minute: minuteOfDay % 60,
-    },
-    { zone: hostTimezone },
+  return earliestInstant(
+    DateTime.fromObject(
+      {
+        year: nominal.year,
+        month: nominal.month,
+        day: nominal.day,
+        hour: Math.floor(minuteOfDay / 60),
+        minute: minuteOfDay % 60,
+      },
+      { zone: hostTimezone },
+    ),
   );
+}
+
+/** If this wall time occurs twice (fall-back), return its earlier occurrence. */
+function earliestInstant(dt: DateTime): DateTime {
+  const before = dt.minus({ hours: 3 }).offset;
+  if (before <= dt.offset) return dt;
+  const wallMillis = dt.toMillis() + dt.offset * 60_000;
+  const earlier = DateTime.fromMillis(wallMillis - before * 60_000, {
+    zone: dt.zone,
+  });
+  const sameWallTime =
+    earlier.hour === dt.hour &&
+    earlier.minute === dt.minute &&
+    earlier.day === dt.day;
+  return sameWallTime ? earlier : dt;
 }
 
 function windowStarts(
