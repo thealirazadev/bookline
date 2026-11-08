@@ -231,3 +231,6 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
   the app has no `next/image` usage. Note that npm only applies a new override on a full re-resolve
   (`rm -rf node_modules package-lock.json && npm install`); a plain `npm install` over the existing
   lockfile silently leaves the nested copy in place.
+- 2026-11-08 - Security: sharp override 0.35.5 and zod 4.6.7 closed the high alerts. Schemas needed no
+  changes (string formats, two-argument record, superRefine, and issues all exist in zod 4).
+  Prisma stays on 6; there is no open alert for it.
