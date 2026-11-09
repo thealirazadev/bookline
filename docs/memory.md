@@ -234,3 +234,11 @@ every meaningful chunk of work; log every non-obvious decision with its reason.
 - 2026-11-08 - Security: sharp override 0.35.5 and zod 4.6.7 closed the high alerts. Schemas needed no
   changes (string formats, two-argument record, superRefine, and issues all exist in zod 4).
   Prisma stays on 6; there is no open alert for it.
+
+- 2026-11-09 - Live check with the production build, Postgres, and Mailpit: availability and
+  slots for a Berlin host seen from Los Angeles, five simultaneous bookings of one slot (one
+  201, four 409, slot removed), host and invitee emails with `invite.ics` (invitee-local
+  "2:30 AM (PST)", METHOD:REQUEST, SEQUENCE:0), reschedule (same UID, SEQUENCE:1, "Updated"
+  email), cancel then a second cancel (410 BOOKING_NOT_ACTIONABLE). No defects. Added a
+  coverage gate on lib/ (80 percent lines; 82.6 now). Route handlers are left to the e2e suite,
+  which Vitest coverage does not see.
