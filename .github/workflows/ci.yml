@@ -63,8 +63,9 @@ jobs:
       - run: npm run test
 
       # DB-backed guarantees: simultaneous-booking-single-winner, exclusion
-      # constraint semantics, reminder idempotency.
-      - run: npm run test:integration
+      # constraint semantics, reminder idempotency. Runs every project with the
+      # lib/ coverage gate (80 percent lines).
+      - run: npm run test:coverage
 
       - run: npm run build
 

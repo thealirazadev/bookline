@@ -12,6 +12,12 @@ export default defineConfig({
   },
   test: {
     passWithNoTests: true,
+    // Route handlers are exercised by the Playwright e2e suite; Vitest gates lib/.
+    coverage: {
+      provider: "v8",
+      include: ["lib/**"],
+      thresholds: { lines: 80, statements: 80 },
+    },
     projects: [
       {
         extends: true,
