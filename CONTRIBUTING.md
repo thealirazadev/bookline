@@ -71,7 +71,7 @@ Run it against the compose stack when you touch the end-to-end booking flow.
 
 ## Conventions
 
-These are enforced in review; `docs/rules.md` is the full contract.
+These are enforced in review; `docs/decisions.md` explains the reasoning behind them.
 
 - **Dates and times** go through Luxon in `lib/slots/` and `lib/ics/` - never raw `Date`
   arithmetic, `getTimezoneOffset`, or string slicing. Timestamps are stored in UTC, availability
@@ -98,7 +98,8 @@ These are enforced in review; `docs/rules.md` is the full contract.
 - Add or extend tests for behavior you change - the slot engine, ics writer, and the DB-enforced
   booking/reminder paths are the highest-value targets (`docs/testing.md`).
 - If a change alters the database schema, include the migration and note it in the PR.
-- Never modify `docs/PRD.md` or `docs/architecture.md` without flagging it - they are the contract.
+- If a change alters a documented design decision or the architecture, update `docs/decisions.md` or
+  `docs/architecture.md` in the same PR and call it out.
 
 Security issues should be reported privately, not as a pull request or public issue - see
 [SECURITY.md](./SECURITY.md).
