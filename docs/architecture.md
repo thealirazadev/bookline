@@ -169,8 +169,8 @@ bookline/
 
 ## Tech stack with rationale
 
-Major versions listed now; exact versions are pinned at install time and `package-lock.json` is
-committed. Every runtime dependency below is proposed and needs owner approval before install.
+Major versions are listed here; exact versions are pinned in `package.json` and
+`package-lock.json` is committed.
 
 - **Next.js 15 (App Router) + TypeScript 5 + React 19** - matches the conventions of the sibling
   projects (`woo-headless`). Server components keep slot generation, secrets, and Prisma on the
@@ -190,15 +190,19 @@ committed. Every runtime dependency below is proposed and needs owner approval b
   flags, JWT session) for a single seeded host account; hand-rolling sessions saves one dependency
   but re-implements exactly the code most likely to be wrong. Password hashed with **bcryptjs 3**
   (pure JS, no native build step).
-- **Zod 3** - one validation layer for every route handler body/query; schemas double as the
-  source of the field-level error messages in `docs/api-contracts.md`.
-- **Nodemailer 9 + SMTP** - plain SMTP keeps the project provider-agnostic. Dev mailbox is
+- **Zod 4** - one validation layer for every route handler body/query; schemas double as the
+  source of the field-level error messages in `docs/api-contracts.md`. Designed against 3; moved
+  to 4.6.7 on 2026-11-08 for a security advisory with no schema changes (string formats,
+  two-argument `record`, `superRefine` and `issues` all exist in 4).
+- **Nodemailer 10 + SMTP** - plain SMTP keeps the project provider-agnostic. Dev mailbox is
   **Mailpit** via `docker-compose.yml` (SMTP on 1025, web UI on 8025) so email flows are testable
   locally with zero external accounts. Was pinned to 6 at design time; moved to 9 on 2026-07-22
   because the 6.x and 7.x lines carry unpatched advisories and only 9.0.1+ clears all of them.
   `lib/email/mailer.ts` needed no change: the 7/8/9 breaks are the SES SDK swap, the `NoAuth` →
   `ENOAUTH` error-code rename, and default TLS verification when fetching remote attachment content,
-  none of which this SMTP-only, inline-attachment mailer touches.
+  none of which this SMTP-only, inline-attachment mailer touches. Dependabot then moved it to
+  10.1.4 (#30); the mailer still only uses `createTransport` with host, port and auth plus
+  `sendMail` with inline string attachments.
 - **Hand-rolled .ics writer (no dependency)** - RFC 5545 output is a differentiator here: METHOD,
   stable UID, SEQUENCE, and CANCEL handling must be exactly right, and the popular `ics` package
   gets METHOD/SEQUENCE control wrong or awkward. The needed subset (VCALENDAR, VEVENT, TZID-free
