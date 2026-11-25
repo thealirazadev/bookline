@@ -38,7 +38,7 @@ Knowing what is and is not a boundary makes reports easier to triage.
 - **Secrets** live only in the environment (`lib/env.ts` validates them at startup and never logs
   values). `AUTH_SECRET` and `LINK_TOKEN_SECRET` must be independently generated so either can be
   rotated alone. Logs redact email addresses and never carry tokens or password hashes.
-- **Known gaps, accepted for v1 and documented in `docs/PRD.md`:** there is no rate limiting or
+- **Known gaps, accepted for v1 and documented in `docs/decisions.md`:** there is no rate limiting or
   CAPTCHA on the public booking form, and there is no visitor account system. Reports about these
   are welcome but they are known trade-offs rather than new findings.
 

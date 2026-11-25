@@ -43,12 +43,13 @@ with `scripts/demo-seed.ts` (seed a host, two event types, availability and book
 - Nodemailer over SMTP (Mailpit as the dev mailbox), hand-rolled RFC 5545 .ics writer
 - Tailwind CSS, Vitest + Playwright, ESLint + Prettier
 
-See `docs/` for the PRD, architecture, API contracts, phases, and rules.
+See `docs/` for the architecture, design, API contracts, testing strategy, and design decisions
+(`docs/decisions.md`).
 
 ## Design decisions
 
 The trade-offs the correctness of this app hangs on, and the alternatives that were rejected. Full
-rationale lives in `docs/architecture.md` and `docs/memory.md`.
+rationale lives in `docs/architecture.md` and `docs/decisions.md`.
 
 - **All instants stored in UTC; availability rules stored in the host's IANA timezone.** Bookings
   are `timestamptz` in UTC; weekly rules, overrides, and blackouts are minutes-of-day integers

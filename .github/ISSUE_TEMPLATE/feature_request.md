@@ -22,7 +22,7 @@ Other approaches you thought about, and why they fall short.
 ## Scope check
 
 bookline is deliberately a single-host, email-only, no-payments app. Some things are explicit
-non-goals in `docs/PRD.md` (payments, multi-host/teams, two-way calendar sync, visitor accounts,
+non-goals in `docs/decisions.md` (payments, multi-host/teams, two-way calendar sync, visitor accounts,
 SMS/push, recurring appointments, i18n). If your request touches one of those, say why it is worth
 revisiting.
 
